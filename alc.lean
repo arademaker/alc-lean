@@ -1,62 +1,106 @@
-import logic.identities logic.axioms.classical data.list
-open bool list
-
+import logic.identities logic.axioms.classical data.list data.num data.nat
+open bool list num nat
+ 
 
 section SetTheory
 
--- print instances decidable
+ 
+
+--print instances decidable
+
+ 
+
 -- some necessary logic theorems
 
--- [Leo]: The file logic.identities has many useful theorems for
--- "classical" users.  Remark: when we import logic.axioms.classical,
--- all propositions are treated as decidable.  See file:
--- library/logic/axioms/prop_decidable.lean
+ 
 
+-- [Leo]: The file logic.identities has many useful theorems for "classical" users.
+
+-- Remark: when we import logic.axioms.classical, all propositions are treated as decidable.
+
+-- See file: library/logic/axioms/prop_decidable.lean
 
 theorem neg_conj {p: Prop} {q: Prop} (h: ¬(p ∧ q)) : ¬p ∨ ¬q :=
-  iff.mp not_and_iff_not_or_not h
+
+iff.mp not_and_iff_not_or_not h
 
 
 
 theorem double_neg {p : Prop} (h: ¬¬p) : p :=
-  iff.mp not_not_iff h
+
+iff.mp not_not_iff h
 
 
 /-theorem iff_neg {p q : Prop} (h:p↔q) : ¬p↔¬q :=
 iff.intro
     (assume h2:¬p,
      assume h3:q,
-     have l:p, from (iff.mp' h) h3,
+     have l:p, from (iff.mpr h) h3,
      show false, from absurd l h2)
     (assume h2:¬q,
      assume h3:p,
      have l:q, from (iff.mp h) h3,
      show false, from absurd l h2)-/
 
-
 theorem contraposition {p q : Prop} (h: p→q) : ¬q→¬p :=
-  assume h2: ¬q,
-  assume h3: p,
-  have l1: q, from h h3,
-  show false, from absurd l1 h2
+assume h2: ¬q,
+assume h3: p,
+have l1: q, from h h3,
+show false, from absurd l1 h2
+
+/-
+theorem list.length_rec_on {T: Type} {C: list T → Type}: (Π(L: list T), length L = 0 → C L) → (Π (n: nat), (Π(L: list T), length L = n → C L) → (Π(L: list T), length L = (nat.succ n) → C L)) → Π(L: list T), C L :=
+begin
+intros [Base, InductiveStep, L], apply ((@nat.rec_on (λ(m: ℕ), Π(r: list T), (length r = m) → (C r))) (length L)),
+  exact Base,
+  exact InductiveStep,
+  trivial
+end
+
+constant eq_nil_of_length_eq_zero {T: Type} : ∀ {l : list T}, length l = 0 → l = []
+
+/-theorem length_0_then_nil {T: Type} {L: list T} : length L = 0 → L = list.nil :=
+λ(h: length L = 0), list.rec_on L (rfl)
+                                  (λ(a: T) (r: list T) (h2: length (a::r) = 0), @list.no_confusion T false (a::r) nil)-/
+/-begin
+intro H, apply (list.rec_on L),
+  trivial,
+  intros [a, r, IndHyp], apply (@list.no_confusion T false (a::r) nil),
+end-/
+
+theorem eq_last_reverse_tail_reverse {T: Type} {L: list T}: L = concat (list.last T) (reverse (tail (reverse L))) :=
+
+theorem concat_rec_on {T: Type} {C: list T → Type} (R: list T): C nil → (Π(a: T) (L: list T), C L → C (list.concat a L)) → C R :=
+begin
+intros [Base, InductiveStep], apply list.length_rec_on,
+  intros [L, length_0], have H: L = nil, from eq_nil_of_length_eq_zero length_0, rewrite H, assumption,
+  intros [n, Len_IndHyp, L, length_succ_n],
 
 
--- [Leo]: In the long-term, I think it would be easier for you if {A :
--- Type} is an explicit parameter.
+end -/
+
+-- [Leo]: In the long-term, I think it would be easier for you if {A : Type} is an explicit
+
+-- parameter.
 
 inductive Set {A : Type} : Type :=
 
 spec: (A → Prop) → Set -- specification, or every set represents and is represented by a Property (a proposition)
 
-
+ 
 
 definition Property {A : Type} (S : Set) : A → Prop := (Set.rec (λ(P: A → Prop), P)) S
 
+
 definition member {A : Type} (S: @Set A) (a : A) : Prop := Property S a
 
+
+ 
 notation a `∈` S := member S a
+
 notation a `∉` S := ¬ a∈S
 
+ 
 
 definition UnivSet {A : Type} : Set := Set.spec (λx:A, x=x) -- Universal Set
 
@@ -66,26 +110,37 @@ definition Union {A : Type} (S : Set) (T : Set) : Set := Set.spec (λ(x: A), x�
 
 definition Compl {A : Type} (S : Set) : Set := Set.spec (λ(x: A), x∉S) -- complementar
 
+ 
 
 notation `U` := UnivSet
+
 notation `∅` := EmptySet
+
 notation S `∪` T := Union S T
+
 prefix `∁`:71 := Compl
 
-
+ 
 
 definition Inters {A : Type} (S : @Set A) (T : @Set A) : @Set A :=
-  ∁(∁S ∪ ∁T)
+
+∁(∁S ∪ ∁T)
+
+ 
 
 notation S `∩` T := Inters S T
 
+ 
 
 definition Diff {A : Type} (S : Set) (T : Set) : @Set A :=
-  S∩(∁T)
+
+S∩(∁T)
+
+ 
 
 infix `∖`:51 := Diff
 
-
+ 
 
 theorem UnivMember {A : Type} : ∀(x: A), x∈UnivSet :=
 
@@ -95,7 +150,7 @@ have h: x=x, from rfl,
 
 show x∈UnivSet, from h
 
-
+ 
 
 theorem EmptyMember {A: Type} : ∀(x: A), x∉EmptySet :=
 
@@ -109,7 +164,7 @@ have l2: x≠x, from h2,
 
 show false, from absurd l l2
 
-
+ 
 
 theorem UnionMember {A: Type} {S: Set} {T: Set} : ∀(x: A), x∈(S∪T)↔(x∈S ∨ x∈T) :=
 
@@ -135,7 +190,7 @@ iff.intro
 
      show x∈(S∪T), from h)
 
-
+ 
 
 theorem ComplMember {A: Type} {S: Set} : ∀(x: A), x∉S ↔ x∈∁S :=
 
@@ -166,10 +221,10 @@ iff.intro
     (assume h: x∈S∧x∈T,
      have l1: x∈S, from and.elim_left h,
      have l2: x∈T, from and.elim_right h,
-     have l3: x∉∁S, from (contraposition (iff.mp' (ComplMember x)) (iff.mp' not_not_iff l1)),
-     have l4: x∉∁T, from (contraposition (iff.mp' (ComplMember x)) (iff.mp' not_not_iff l2)),
+     have l3: x∉∁S, from (contraposition (iff.mpr (ComplMember x)) (iff.mpr not_not_iff l1)),
+     have l4: x∉∁T, from (contraposition (iff.mpr (ComplMember x)) (iff.mpr not_not_iff l2)),
      have l5: x∉∁S∧x∉∁T, from and.intro l3 l4,
-     have l6: ¬(x∈∁S ∨ x∈∁T), from iff.mp' not_or_iff_not_and_not l5,
+     have l6: ¬(x∈∁S ∨ x∈∁T), from iff.mpr not_or_iff_not_and_not l5,
      have l7: x∉(∁S∪∁T), from l6,
      show x∈S∩T, from l7)
 
@@ -181,23 +236,23 @@ iff.intro
      have l2: x∈S∧x∈∁T, from iff.mp (IntersMember x) l,
      have l3: x∈S, from and.elim_left l2,
      have l4: x∈∁T, from and.elim_right l2,
-     have l5: x∉T, from iff.mp' (ComplMember x) l4,
+     have l5: x∉T, from iff.mpr (ComplMember x) l4,
      show x∈S∧x∉T, from and.intro l3 l5)
     (assume h:x∈S∧x∉T,
      have l: x∈S, from and.elim_left h,
      have l2: x∉T, from and.elim_right h,
      have l3: x∈∁T, from iff.mp (ComplMember x) l2,
      have l4: x∈S∧x∈∁T, from and.intro l l3,
-     have l5: x∈S∩∁T, from iff.mp' (IntersMember x) l4,
+     have l5: x∈S∩∁T, from iff.mpr (IntersMember x) l4,
      show x∈(S∖T), from l5)
 
-
+	 
 definition subset {A: Type} (S: Set) (T: Set) : Prop := ∀x:A, x∈S → x∈T
 
 infix `⊂`:52 := subset
 
-axiom SetEqual {A: Type} {S T : @Set A} : S⊂T∧T⊂S ↔ S=T
-
+theorem SetEqual {A: Type} {S T : @Set A} : S⊂T∧T⊂S ↔ S=T := sorry
+   
 theorem IntersUniv {A: Type} {S: @Set A} : S∩U = S :=
 iff.mp SetEqual (and.intro
        (assume x:A,
@@ -208,7 +263,7 @@ iff.mp SetEqual (and.intro
         assume h:x∈S,
         have l:x∈U, from UnivMember x,
         have l2:x∈S∧x∈U, from and.intro h l,
-        show x∈S∩U, from iff.mp' (IntersMember x) l2))
+        show x∈S∩U, from iff.mpr (IntersMember x) l2))
 
 theorem Inters_commu {A: Type} (B C: @Set A) : B∩C = C∩B :=
 iff.mp SetEqual (and.intro
@@ -218,14 +273,14 @@ iff.mp SetEqual (and.intro
         have l2:x∈B, from and.elim_left l,
         have l3:x∈C, from and.elim_right l,
         have l4:x∈C∧x∈B, from and.intro l3 l2,
-        show x∈C∩B, from iff.mp' (IntersMember x) l4)
+        show x∈C∩B, from iff.mpr (IntersMember x) l4)
        (assume x:A,
         assume h:x∈C∩B,
         have l:x∈C∧x∈B, from iff.mp (IntersMember x) h,
         have l2:x∈C, from and.elim_left l,
         have l3:x∈B, from and.elim_right l,
         have l4:x∈B∧x∈C, from and.intro l3 l2,
-        show x∈B∩C, from iff.mp' (IntersMember x) l4))
+        show x∈B∩C, from iff.mpr (IntersMember x) l4))
 
 theorem Inters_assoc {A: Type} {B C D: @Set A} : B∩(C∩D) = (B∩C)∩D :=
 iff.mp SetEqual (and.intro
@@ -238,9 +293,9 @@ iff.mp SetEqual (and.intro
         have l5: x∈C, from and.elim_left l4,
         have l6: x∈D, from and.elim_right l4,
         have l7: x∈B∧x∈C, from and.intro l2 l5,
-        have l8: x∈B∩C, from iff.mp' (IntersMember x) l7,
+        have l8: x∈B∩C, from iff.mpr (IntersMember x) l7,
         have l9: x∈B∩C∧x∈D, from and.intro l8 l6,
-        show x∈(B∩C)∩D, from iff.mp' (IntersMember x) l9)
+        show x∈(B∩C)∩D, from iff.mpr (IntersMember x) l9)
        (assume x:A,
         assume h:x∈(B∩C)∩D,
         have l: x∈B∩C∧x∈D, from iff.mp (IntersMember x) h,
@@ -250,9 +305,9 @@ iff.mp SetEqual (and.intro
         have l5: x∈B, from and.elim_left l4,
         have l6: x∈C, from and.elim_right l4,
         have l7: x∈C∧x∈D, from and.intro l6 l3,
-        have l8: x∈C∩D, from iff.mp' (IntersMember x) l7,
+        have l8: x∈C∩D, from iff.mpr (IntersMember x) l7,
         have l9: x∈B∧x∈C∩D, from and.intro l5 l8,
-        show x∈B∩(C∩D), from iff.mp' (IntersMember x) l9))
+        show x∈B∩(C∩D), from iff.mpr (IntersMember x) l9))
 
 theorem subset_inters {A: Type} {B C D: @Set A} : B⊂C → (D∩B⊂D∩C) :=
   assume h: B⊂C,
@@ -263,7 +318,7 @@ theorem subset_inters {A: Type} {B C D: @Set A} : B⊂C → (D∩B⊂D∩C) :=
   have l3: x∈D, from and.elim_left l,
   have l4: x∈C, from h x l2,
   have l5: x∈D∧x∈C, from and.intro l3 l4,
-  show x∈(D∩C), from iff.mp' (IntersMember x) l5
+  show x∈(D∩C), from iff.mpr (IntersMember x) l5
 
 theorem subset_trans {A: Type} {B C D: @Set A} : B⊂C → C⊂D → B⊂D :=
   assume h:B⊂C,
@@ -286,7 +341,7 @@ iff.mp SetEqual (and.intro
   (assume x:A,
    assume h:x∈S,
    have l:x∈S∨x∈∅, from or.intro_left (x∈∅) h,
-   show x∈S∪∅, from iff.mp' (UnionMember x) l))
+   show x∈S∪∅, from iff.mpr (UnionMember x) l))
 
 theorem Union_commu {A: Type} (S T: @Set A): S∪T = T∪S :=
  iff.mp SetEqual (and.intro
@@ -294,12 +349,12 @@ theorem Union_commu {A: Type} (S T: @Set A): S∪T = T∪S :=
     assume h:x∈S∪T,
     have l:x∈S∨x∈T, from iff.mp (UnionMember x) h,
     have l2: x∈T∨x∈S, from iff.mp or.comm l,
-    show x∈T∪S, from iff.mp' (UnionMember x) l2)
+    show x∈T∪S, from iff.mpr (UnionMember x) l2)
    (assume x:A,
     assume h:x∈T∪S,
     have l:x∈T∨x∈S, from iff.mp (UnionMember x) h,
     have l2: x∈S∨x∈T, from iff.mp or.comm l,
-    show x∈S∪T, from iff.mp' (UnionMember x) l2))
+    show x∈S∪T, from iff.mpr (UnionMember x) l2))
 
 theorem Union_assoc {A: Type} {R S T: @Set A} : R∪(S∪T) = (R∪S)∪T :=
 iff.mp SetEqual (and.intro
@@ -309,20 +364,20 @@ iff.mp SetEqual (and.intro
    or.elim l
      (assume h2:x∈R,
       have l2:x∈R∨x∈S, from !or.intro_left h2,
-      have l3:x∈R∪S, from iff.mp' (UnionMember x) l2,
+      have l3:x∈R∪S, from iff.mpr (UnionMember x) l2,
       have l4:x∈(R∪S)∨x∈T, from !or.intro_left l3,
-      show x∈(R∪S)∪T, from iff.mp' (UnionMember x) l4)
+      show x∈(R∪S)∪T, from iff.mpr (UnionMember x) l4)
      (assume h2:x∈S∪T,
       have l2:x∈S∨x∈T, from iff.mp (UnionMember x) h2,
       show x∈(R∪S)∪T, from or.elim l2
         (assume h3:x∈S,
          have l3:x∈R∨x∈S, from !or.intro_right h3,
-         have l4:x∈R∪S, from iff.mp' (UnionMember x) l3,
+         have l4:x∈R∪S, from iff.mpr (UnionMember x) l3,
          have l5:x∈R∪S∨x∈T, from or.intro_left (x∈T) l4,
-         show x∈(R∪S)∪T, from iff.mp' (UnionMember x) l5)
+         show x∈(R∪S)∪T, from iff.mpr (UnionMember x) l5)
         (assume h3:x∈T,
          have l5:x∈R∪S∨x∈T, from or.intro_right (x∈R∪S) h3,
-         show x∈(R∪S)∪T, from iff.mp' (UnionMember x) l5)))
+         show x∈(R∪S)∪T, from iff.mpr (UnionMember x) l5)))
    (assume x:A,
     assume h:x∈(R∪S)∪T,
     have l:x∈R∪S∨x∈T, from iff.mp (UnionMember x) h,
@@ -332,20 +387,20 @@ iff.mp SetEqual (and.intro
        show x∈R∪(S∪T), from or.elim l2
             (assume h3:x∈R,
              have l3: x∈R∨x∈S∪T, from or.intro_left (x∈S∪T) h3,
-             show x∈R∪(S∪T), from iff.mp' (UnionMember x) l3)
+             show x∈R∪(S∪T), from iff.mpr (UnionMember x) l3)
             (assume h3:x∈S,
              have l3: x∈S∨x∈T, from or.intro_left (x∈T) h3,
-             have l4:x∈S∪T, from iff.mp' (UnionMember x) l3,
+             have l4:x∈S∪T, from iff.mpr (UnionMember x) l3,
              have l5:x∈R∨x∈S∪T, from or.intro_right (x∈R) l4,
-             show x∈R∪(S∪T), from iff.mp' (UnionMember x) l5))
+             show x∈R∪(S∪T), from iff.mpr (UnionMember x) l5))
        (assume h2:x∈T,
         have l2:x∈S∨x∈T, from or.intro_right (x∈S) h2,
-        have l3:x∈S∪T, from iff.mp' (UnionMember x) l2,
+        have l3:x∈S∪T, from iff.mpr (UnionMember x) l2,
         have l4:x∈R∨x∈S∪T, from or.intro_right (x∈R) l3,
-        show x∈R∪(S∪T), from iff.mp' (UnionMember x) l4)))
+        show x∈R∪(S∪T), from iff.mpr (UnionMember x) l4)))
 
 -- I've copied this incomplete proof of this theorem because in this last step, LEAN says it couldn't
--- unify x ∈ α∩C with false. However, (iff.mp' (IntersMember x)) produces x∈ ?S ∧ x∈?T → x∈?S∪?T
+-- unify x ∈ α∩C with false. However, (iff.mpr (IntersMember x)) produces x∈ ?S ∧ x∈?T → x∈?S∪?T
 -- What's wrong here?
 
 /-theorem SetCut {A: Type} {B C α X Y: @Set A} (h: B⊂α∪X) (h2: α∩C⊂Y): B∩C ⊂ X∪Y :=
@@ -356,13 +411,13 @@ begin
   have l2:x∈B, from and.elim_left l,
   have l3:x∈C, from and.elim_right l,
   have l4:x∈α∨x∈X, from (iff.mp (UnionMember x) (h x l2)),
-  apply (iff.mp' (UnionMember x)),
+  apply (iff.mpr (UnionMember x)),
   apply (or.elim l4),
-    intro x_α, apply !or.intro_right, apply (h2 x), apply (iff.mp' (IntersMember x)),
+    intro x_α, apply !or.intro_right, apply (h2 x), apply (iff.mpr (IntersMember x)),
 
 end-/
 
-
+  
 theorem SetCut {A: Type} {B C α X Y: @Set A} (h: B⊂α∪X) (h2: α∩C⊂Y): B∩C ⊂ X∪Y :=
 begin
   intro x,
@@ -371,9 +426,9 @@ begin
   have l2:x∈B, from and.elim_left l,
   have l3:x∈C, from and.elim_right l,
   have l4:x∈α∨x∈X, from (iff.mp (UnionMember x) (h x l2)),
-  apply (iff.mp' (UnionMember x)),
+  apply (iff.mpr (UnionMember x)),
   apply (or.elim l4),
-    intro x_α, apply !or.intro_right, apply (h2 x), have l5: x∈α∧x∈C, from (and.intro x_α l3), exact (iff.mp' (IntersMember x) l5),
+    intro x_α, apply !or.intro_right, apply (h2 x), have l5: x∈α∧x∈C, from (and.intro x_α l3), exact (iff.mpr (IntersMember x) l5),
     intro x_X, exact (!or.intro_left x_X)
 end
 
@@ -388,29 +443,33 @@ show x∈X∪Y, from
 
   end-/
 
+
+
 end SetTheory
 
 
 namespace ALC
 
 universe UNI
+
 constants AtomicConcept AtomicRole : Type.{UNI}
 
 inductive Role : Type :=
-  | Atomic : AtomicRole → Role
+| Atomic : AtomicRole → Role
 
 inductive Concept : Type :=
-  | TopConcept : Concept
-  | BottomConcept : Concept
-  | Atomic :  AtomicConcept → Concept
-  | Negation : Concept → Concept
-  | Intersection : Concept → Concept → Concept
-  | Union : Concept → Concept → Concept
-  | ExistQuant : Role → Concept → Concept
-  | ValueRestr : Role → Concept → Concept
+| TopConcept : Concept
+| BottomConcept : Concept
+| Atomic :  AtomicConcept → Concept
+| Negation : Concept → Concept
+| Intersection : Concept → Concept → Concept
+| Union : Concept → Concept → Concept
+| ExistQuant : Role → Concept → Concept  
+| ValueRestr : Role → Concept → Concept  
 
 
 --attribute Concept.Atomic [coercion]
+
 --attribute Role.Atomic [coercion]
 
 open Concept
@@ -430,38 +489,36 @@ mk :: (δ : Type.{UNI}) -- δ is the Universe
       (atom_C : AtomicConcept → @Set δ)
       (atom_R : AtomicRole → @Set (δ×δ))
 
-
 definition r_interp {I : Interp} : Role → @Set(Interp.δ I × Interp.δ I)  -- Role interpretation
-  | r_interp (Atomic R) := !Interp.atom_R R
+| r_interp (Atomic R) := !Interp.atom_R R
 
 definition interp {I: Interp} : Concept → Set -- Concept Interpretation
-  | interp ⊤ := U
-  | interp ⊥ := ∅
-  | interp (Atomic C) := !Interp.atom_C C
-  | interp ¬C := ∁(interp C)
-  | interp (C1⊓C2) := (interp C1)∩(interp C2)
-  | interp (C1⊔C2) := (interp C1)∪(interp C2)
-  | interp (∃;R. C) := Set.spec (λa:Interp.δ I, exists b :
-                                   Interp.δ I, (a, b)∈(!r_interp R) ∧ b∈(interp C) )
-  | interp (ValueRestr R C) := Set.spec (λa:Interp.δ I, forall b :
-                                   Interp.δ I, ((a, b)∈(!r_interp R)) → b∈(interp C))
+| interp ⊤ := U
+| interp ⊥ := ∅
+| interp (Atomic C) := !Interp.atom_C C
+| interp ¬C := ∁(interp C)
+| interp (C1⊓C2) := (interp C1)∩(interp C2)
+| interp (C1⊔C2) := (interp C1)∪(interp C2)
+| interp (∃;R. C) := Set.spec (λa:Interp.δ I, exists b : Interp.δ I, (a, b)∈(!r_interp R) ∧ b∈(interp C) )
+| interp (ValueRestr R C) := Set.spec (λa:Interp.δ I, forall b : Interp.δ I, ((a, b)∈(!r_interp R)) → b∈(interp C))
+
 
 definition satisfiable (C : Concept) : Prop :=
-  exists I : Interp, @interp I C ≠ ∅
+exists I : Interp, @interp I C ≠ ∅
 
 definition subsumption (C D: Concept) : Prop :=
-  forall I : Interp, @interp I C ⊂ @interp I D
-  infix `⊑` : 50 := subsumption -- \sqsubseteq
+forall I : Interp, @interp I C ⊂ @interp I D
+infix `⊑` : 51 := subsumption -- \sqsubseteq
 
 definition equivalence (C D: Concept) : Prop := C⊑D∧D⊑C
-  infix `≡` : 50 := equivalence -- \==
+infix `≣` : 50 := equivalence -- \===
 
 definition TBOX_subsumption (D : @Set Prop) (α : Prop) : Prop :=
-  (forall p: Prop, (p∈D → p)) → α
-  infix `⊧` : 1 := TBOX_subsumption --\models
+(forall p: Prop, (p∈D → p)) → α
+infix `⊧` : 1 := TBOX_subsumption --\models
 
-definition models_proof (Ω: @Set Prop) (α: Prop) (h: (∀p: Prop, (p∈ Ω → p)) → α) : Ω⊧α
-           := h
+definition models_proof (Ω: @Set Prop) (α: Prop) (h: (∀p: Prop, (p∈ Ω → p)) → α): Ω⊧α :=
+h
 
 example (C D : Concept) : C⊓D ⊑ C :=
 take (I : Interp),
@@ -471,7 +528,7 @@ have l: x ∈ (interp C)∩(interp D), from h,
 have l2: x∈(interp C)∧x∈(interp D), from (iff.elim_left (IntersMember x)) l,
 show x∈(interp C), from and.elim_left l2
 
-example (C D E : Concept) : (Set.spec (λp: Prop, p = C⊑D ∨ p = D⊑E)) ⊧ C⊑E :=
+example (C D E : Concept) : (Set.spec (λp: Prop, p = (C⊑D) ∨ p = (D⊑E))) ⊧ C⊑E :=
 assume h: forall (p: Prop), (p∈(Set.spec (λp: Prop, p = C⊑D ∨ p = D⊑E)) → p),
 have l1: C⊑D = C⊑D, from rfl,
 have l2: C⊑D = C⊑D ∨ C⊑D = D⊑E, from or.intro_left (C⊑D = D⊑E) l1,
@@ -486,21 +543,33 @@ take x : Interp.δ I,
 assume h2: x∈ interp C,
 have l9: x∈ interp D, from l7 I x h2,
 show x ∈ interp E, from l8 I x l9
+ 
+--- Sequent Calculus
 
 
 inductive Label : Type :=
 | all : Role → Label
 | ex : Role → Label
 
-notation `∀;` R := Label.all R
+notation `∀;` R := Label.all R -- notation overload com os roles; não funciona para o ∃;
 
 inductive LabelConc : Type := -- labeled concept
 | mk : list Label → Concept → LabelConc
 
 notation L `[` C `]` := LabelConc.mk L C
 
--- label to prefix
-definition LabelToPrefix [reducible] : list Label → (Concept → Concept)
+-- Duas definições apenas para conseguir usar a notação {a,b} para as listas de LabelConc e somente para elas
+definition label_conc_append [reducible] (a: list LabelConc) (b: list LabelConc): list LabelConc := append a b
+local notation `{` a `,` b`}` := label_conc_append a b
+
+definition label_conc_cons [reducible] (a: LabelConc) (b: list LabelConc): list LabelConc := a::b
+local notation `{` a `,` b`}` := label_conc_cons a b -- notation overload
+
+definition label.to_labellist [coercion] (l: Label) : list Label := l::nil
+definition Concept.to_LabelConc [coercion] (C: Concept) : LabelConc := nil[C]
+definition LabelConc.to_ListLabelConc [coercion] (a: LabelConc) : list LabelConc := a::nil
+
+definition LabelToPrefix [reducible] : list Label → (Concept → Concept) -- label to prefix
 | LabelToPrefix nil C := C
 | LabelToPrefix ((Label.all R)::L) C := ∀;R . (LabelToPrefix L C)
 | LabelToPrefix ((Label.ex R)::L) C := ∃;R .(LabelToPrefix L C)
@@ -511,8 +580,7 @@ definition getLabelList : LabelConc → list Label
 definition σ [reducible] : LabelConc → Concept
 | σ (LabelConc.mk L C) := (LabelToPrefix L) C
 
--- negation of a list of labels
-definition negLabel: list Label → list Label
+definition negLabel: list Label → list Label  -- negation of a list of labels
 | negLabel nil := nil
 | negLabel ((Label.all R)::L) := (Label.ex R)::(negLabel L)
 | negLabel ((Label.ex R)::L) := (Label.all R)::(negLabel L)
@@ -544,12 +612,42 @@ definition remainderLabel : list Label → list Label
     cond (isNullLabelList L) nil
                          (R::(remainderLabel L))
 
-
+                        
 definition downLabelConc : LabelConc → Concept
 | downLabelConc (LabelConc.mk L C) := LabelToPrefix L C
 
 definition downInternalLabel : LabelConc → LabelConc
 | downInternalLabel (LabelConc.mk L C) := LabelConc.mk (remainderLabel L) ((LabelToPrefix (internalLabel L)) C)
+
+namespace test
+  constant R: Role
+  constant C: Concept
+  constant L: list LabelConc
+  check [∀;R, Label.ex R][C]
+  check [R, R, R]
+  check [L, L]
+  definition pudim := [∀;R, Label.ex R][C]
+  eval pudim
+  eval downInternalLabel pudim
+  example: C = C := rfl
+  example: ((σ pudim) = (σ (downInternalLabel pudim))) := rfl
+end test
+
+definition σ_downInternalLabel {α: LabelConc} : (σ α) = (σ (downInternalLabel α)) :=
+begin
+apply (LabelConc.induction_on α), intros [l, c], apply (list.induction_on l),
+  trivial,
+  intros [lab, l2, IndHyp], apply (Label.rec_on lab), all_goals intro r, all_goals rewrite ↑σ at *,
+    rewrite [(eq.refl (∀;r . ((LabelToPrefix l2) c)))],
+end
+
+definition drop_last_label {L R: list Label} {α: Concept}: σ ((L++R)[α]) = σ(L[σ(R[α])]) :=
+begin
+apply (list.induction_on L), rewrite (append_nil_left),
+                             intros [a, l, IndHyp], rewrite append_cons, rewrite ↑σ,  --cases a,
+                              -- apply (eq.refl (∀;a . (LabelToPrefix (l++R) α))),
+/-rewrite ↑LabelToPrefix, rewrite ↓IndHyp,-/
+end
 
 definition isOnlyAllLabel : list Label → bool
 | isOnlyAllLabel nil := tt
@@ -563,20 +661,6 @@ definition isOnlyExLabel : list Label → bool
 
 definition is_true [reducible] (b : bool) := b = tt
 
-
-/-
-namespace tests -- tests
-    constant C: Concept
-    constants R1 R2 R3 : Role
-    eval internalLabel (Label.ex R3 (Label.ex R1 (Label.all R2 (Label.null))))
-    eval remainderLabel (Label.ex R3 (Label.ex R1 (Label.all R2 (Label.null))))
-    definition test := LabelConc.mk (Label.ex R3 (Label.ex R1 (Label.all R2 (Label.null)))) C
-    eval downInternalLabel test
-end tests-/
-
-  -- Structural Rules
-
-
 definition isNil {A: Type} : list A → bool
 | isNil nil := tt
 | isNil (a :: l) := ff
@@ -586,7 +670,7 @@ definition AntecedentWrap : list LabelConc → Concept -- Não está sendo utili
 | AntecedentWrap (α :: L) :=
         list.rec_on L (σ α)
                       (λα2 L2 C2, (σ α)⊓(AntecedentWrap L))
-
+                       
 definition ConsequentWrap : list LabelConc → Concept
 | ConsequentWrap nil := ⊥
 | ConsequentWrap (α :: L) :=
@@ -601,6 +685,16 @@ definition CInterp [reducible] {I: Interp} : list LabelConc → @Set (Interp.δ 
 | CInterp nil := ∅
 | CInterp (α::L) := (interp (σ α))∪(CInterp L)
 
+definition AInterp_single {I: Interp} (α: LabelConc): (@AInterp I α) = (interp (σ α)) := by apply IntersUniv
+
+definition CInterp_single {I: Interp} (α: LabelConc): (@CInterp I α) = (interp (σ α)) := by apply UnionEmpty
+
+definition AInterp_equal_sigma {I: Interp} {A: LabelConc} {B: LabelConc} (h: σ(A) = σ(B)): (@AInterp I A) = AInterp B :=
+by rewrite [(AInterp_single A), AInterp_single B, h]
+
+definition CInterp_equal_sigma {I: Interp} {A: LabelConc} {B: LabelConc} (h: σ(A) = σ(B)): (@CInterp I A) = CInterp B :=
+by rewrite [(CInterp_single A), CInterp_single B, h]
+
 set_option pp.universes true
 set_option unifier.max_steps 1000000
 
@@ -610,7 +704,7 @@ apply (list.induction_on Δ1),
   apply eq.trans,
     rewrite (eq.refl (nil++Δ2)), apply (eq.refl (AInterp Δ2)),
     rewrite (Inters_commu (AInterp nil) (AInterp Δ2)), apply (eq.symm IntersUniv),
-  intro a, intro Δ, intro IndHyp, rewrite (append_cons a Δ Δ2), rewrite {AInterp (a::Δ)}(eq.refl ((interp (σ a))∩(AInterp Δ))), rewrite -(!Inters_assoc), rewrite -IndHyp,
+  intro a, intro Δ, intro IndHyp, rewrite (append_cons a Δ Δ2), rewrite {AInterp (a::Δ)}(eq.refl ((interp (σ a))∩(AInterp Δ))), rewrite -(!Inters_assoc), rewrite -IndHyp, 
 end
 
 definition CInterp_append {I: Interp} (Δ1 Δ2: list LabelConc) : @CInterp I ((Δ1)++Δ2) = (CInterp Δ1)∪(CInterp Δ2) :=
@@ -622,49 +716,54 @@ apply (list.induction_on Δ1),
   intro a, intro Δ, intro IndHyp, rewrite (append_cons a Δ Δ2), rewrite {CInterp (a::Δ)}(eq.refl ((interp (σ a))∪(CInterp Δ))), rewrite -(!Union_assoc), rewrite -IndHyp,
 end
 
+definition AInterp_cons {I: Interp} (α: LabelConc) (Δ: list LabelConc) : @AInterp I (α::Δ) = (AInterp α)∩(AInterp Δ) :=
+by apply AInterp_append
+
+definition CInterp_cons {I: Interp} (α: LabelConc) (Δ: list LabelConc) : @CInterp I (α::Δ) = (CInterp α)∪(CInterp Δ) :=
+by apply CInterp_append
+
 inductive sequent (Δ : list LabelConc) (Γ: list LabelConc) : Prop :=
 infix `⇒`:51 := sequent
 | intro : (∀I: Interp, (@AInterp I Δ) ⊂ CInterp Γ) → Δ⇒Γ
 infix `⇒`:51 := sequent
 
--- Duas definições apenas para conseguir usar a notação {a,b} para as listas de LabelConc e somente para elas
-definition label_conc_append (a: list LabelConc) (b: list LabelConc): list LabelConc := append a b
-local notation `{` a `,` b`}` := label_conc_append a b
+namespace outro_teste
+  constant R : Role
+  constant C: Concept
+  constant L: Label
+  constant M: list Label
+  check ∀;R
+  check ∃;R . C
+  check ∀; R . C
+  check { M[C] , M[C] }
+  eval { ((∀;R)::L)[C] , C}
+  check M[C]
+  check L[C]
+  check (∀;R : list Label)[C]
+  eval σ((∀;R)[C])
+end outro_teste
 
-definition label_conc_cons (a: list LabelConc) (b: LabelConc): list LabelConc := b::a
-local notation `{` b `,` a`}` := label_conc_cons a b -- notation overload
-
-definition label.to_labellist [coercion] (l: Label) : list Label := l::nil
-definition Concept.to_LabelConc [coercion] (C: Concept) : LabelConc := nil[C]
-definition LabelConc.to_ListLabelConc [coercion] (a: LabelConc) : list LabelConc := a::nil
-
-namespace test
-constants X R : Role
-constant C: Concept
-constant L: Label
-constant M: list Label
-check ∃;R
-check (L::L)[C]
-check ((∀;R) ++ (∀;R))[C]
-check ∀; R . C
-check { M[C] , M[C] }
-eval { ((∀;R)::L)[C] , C}
-check M[C]
-check L[C]
-check (∀;R : list Label)[C]
-end test
-
-namnespace test2
+namespace test2
   constant a: list LabelConc
   constant b: list LabelConc
   constant c: LabelConc
+  constant c2: LabelConc
+  constant c3: LabelConc
+  constant c4: LabelConc
   constant d: Label
   constant e: Concept
   constant d2: Label
+  eval append c a
+  eval (c: list LabelConc)
+  eval [c,c2]++[c3,c4]
+  eval c2::[c3,c4]
+  eval c::c2
   check a++b
-  check {a,b}
+  check [a,b]
   check {c,a}
   check {(d::nil)[e],a}
+  eval {(d::nil)[e],a}
+  eval {d[e],a}
   check {d[e],a}
   check {(d2::d2::d)[e],a}
   -- Seria interessante conseguir utilizar a notação {a, b, b}...
@@ -672,31 +771,28 @@ end test2
 
 namespace sequent
 
-definition meaning {Δ : list LabelConc} {Γ: list LabelConc} (h: Δ⇒Γ) : ∀I: Interp, (@AInterp I Δ) ⊂ CInterp Γ := -- elimination rule for sequents
+  definition meaning {Δ : list LabelConc} {Γ: list LabelConc} (h: Δ⇒Γ) : ∀I: Interp, (@AInterp I Δ) ⊂ CInterp Γ := -- elimination rule for sequents
 sequent.rec_on h (assume h2: ∀I: Interp, (@AInterp I Δ) ⊂ CInterp Γ, take I: Interp, h2 I)
 end sequent
 
 open Label
 
 inductive SCALCproof (Ω: @Set Prop) : Prop → Prop :=
-  infix `⊢` : 25 := SCALCproof -- \vdash
-  | hypo : Π{α: Concept}, Ω⊢(nil[α]::nil)⇒(nil[α]::nil) -- fazer uma coercion concept -> labeled concept
-  | ex_falsum : Π(α: Concept), Ω⊢(nil[⊥]::nil) ⇒ (nil[α]::nil)
-  | weak_l : Π(Δ Γ: list LabelConc) (δ: LabelConc), Ω⊢(Δ⇒Γ) → Ω⊢(δ::Δ)⇒Γ
-  | weak_r : Π(Δ Γ: list LabelConc) (γ: LabelConc), Ω⊢Δ⇒Γ → Ω⊢Δ⇒(γ::Γ)
-  | contraction_l : Π(Δ Γ: list LabelConc) (δ: LabelConc), Ω⊢(δ::δ::Δ)⇒Γ → Ω⊢(δ::Δ)⇒Γ
-  | contraction_r : Π(Δ Γ: list LabelConc) (γ: LabelConc), Ω⊢Δ⇒(γ::γ::Γ) → Ω⊢Δ⇒(γ::Γ)
-  | perm_l : Π(Δ1 Δ2 Γ: list LabelConc) (δ1 δ2: LabelConc), Ω⊢Δ1++(δ1::δ2::Δ2)⇒Γ → Ω⊢(Δ1++(δ2::δ1::Δ2))⇒Γ
-  | perm_r : Π(Δ Γ1 Γ2: list LabelConc) (γ1 γ2: LabelConc), Ω⊢Δ⇒Γ1++(γ1::γ2::Γ2) → Ω⊢Δ⇒Γ1++(γ2::γ1::Γ2)
-  | cut : Π(Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc), Ω⊢Δ1⇒α::Γ1 → Ω⊢α::Δ2⇒Γ2 → Ω⊢Δ1++Δ2⇒Γ1++Γ2
-  | and_l : Π(Δ Γ : list LabelConc) (L: list Label) (α β : Concept) (p: is_true (isOnlyAllLabel L)),
-    Ω⊢(L[α]::L[β]::Δ)⇒Γ → Ω⊢(L[α⊓β]::Δ)⇒Γ
-  | all_r : Π(Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role), Ω⊢ Δ⇒{ (L++(∀;R))[α], Γ} →
-    Ω⊢ Δ⇒{ (L[∀;R .α]), Γ}
+infix `⊢` : 25 := SCALCproof -- \vdash
+| hypo : Π{α: Concept}, Ω⊢(nil[α]::nil)⇒(nil[α]::nil) -- fazer uma coercion concept -> labeled concept
+| ex_falsum : Π(α: Concept), Ω⊢(nil[⊥]::nil) ⇒ (nil[α]::nil)
+| weak_l : Π(Δ Γ: list LabelConc) (δ: LabelConc), Ω⊢(Δ⇒Γ) → Ω⊢(δ::Δ)⇒Γ
+| weak_r : Π(Δ Γ: list LabelConc) (γ: LabelConc), Ω⊢Δ⇒Γ → Ω⊢Δ⇒(γ::Γ)
+| contraction_l : Π(Δ Γ: list LabelConc) (δ: LabelConc), Ω⊢(δ::δ::Δ)⇒Γ → Ω⊢(δ::Δ)⇒Γ
+| contraction_r : Π(Δ Γ: list LabelConc) (γ: LabelConc), Ω⊢Δ⇒(γ::γ::Γ) → Ω⊢Δ⇒(γ::Γ)
+| perm_l : Π(Δ1 Δ2 Γ: list LabelConc) (δ1 δ2: LabelConc), Ω⊢Δ1++(δ1::δ2::Δ2)⇒Γ → Ω⊢(Δ1++(δ2::δ1::Δ2))⇒Γ
+| perm_r : Π(Δ Γ1 Γ2: list LabelConc) (γ1 γ2: LabelConc), Ω⊢Δ⇒Γ1++(γ1::γ2::Γ2) → Ω⊢Δ⇒Γ1++(γ2::γ1::Γ2)
+| cut : Π(Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc), Ω⊢Δ1⇒α::Γ1 → Ω⊢α::Δ2⇒Γ2 → Ω⊢Δ1++Δ2⇒Γ1++Γ2
+| and_l : Π(Δ Γ : list LabelConc) (L: list Label) (α β : Concept) (p: is_true (isOnlyAllLabel L)),  Ω⊢(L[α]::L[β]::Δ)⇒Γ → Ω⊢(L[α⊓β]::Δ)⇒Γ
+| all_r : Π(Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role), Ω⊢ Δ⇒{ (L++(∀;R))[α], Γ}  → Ω⊢ Δ⇒{ (L[∀;R .α]), Γ}
 infix `⊢` : 25 := SCALCproof
 
-definition cut_soundness (Ω: @Set Prop) (Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc) :
-           (Ω⊧ Δ1⇒α::Γ1) → (Ω⊧ α::Δ2⇒Γ2) → (Ω⊧ Δ1++Δ2⇒Γ1++Γ2) :=
+definition cut_soundness (Ω: @Set Prop) (Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc) : (Ω⊧ Δ1⇒α::Γ1) → (Ω⊧ α::Δ2⇒Γ2) → (Ω⊧ Δ1++Δ2⇒Γ1++Γ2) :=
   assume h: Ω⊧Δ1⇒α::Γ1,
   assume h2: Ω⊧α::Δ2⇒Γ2,
   assume h3: ∀p: Prop, (p∈ Ω → p),
@@ -712,12 +808,8 @@ definition cut_soundness (Ω: @Set Prop) (Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: 
     eq.subst rfl (l4 I),
   show Δ1++Δ2⇒(Γ1++Γ2), from
     begin
-      apply sequent.intro, intro I, rewrite [(AInterp_append Δ1 Δ2), (CInterp_append Γ1 Γ2)],
-        exact (SetCut (l5 I) (l6 I)),
+      apply sequent.intro, intro I, rewrite [(AInterp_append Δ1 Δ2), (CInterp_append Γ1 Γ2)], exact (SetCut (l5 I) (l6 I)),
     end
-
-
-definition drop_last_all_label {L: list Label} {α: Concept} {R: Role} : σ ((L++(∀;R))[α]) = σ(L[∀;R . α]) := sorry
 
 definition all_r_soundness (Ω: @Set Prop) (Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role):
 (Ω⊧ (Δ⇒{ (L++(∀;R))[α], Γ}))  →  (Ω⊧ Δ⇒{ L[∀;R .α], Γ}) :=
@@ -725,23 +817,22 @@ assume h: Ω⊧( Δ⇒{ (L++(∀;R))[α], Γ}),
 assume h2: ∀p: Prop, (p∈Ω → p),
 have l1: Δ⇒{ (L++(∀;R))[α], Γ}, from h h2,
 assert l2: ∀I: Interp, AInterp Δ ⊂ CInterp { (L++(∀;R))[α], Γ}, from sequent.meaning l1,
-assert l3: (σ ((L++(∀;R))[α])) = (σ (L[∀;R . α])), from drop_last_all_label,
-have l4: (CInterp {(L++(∀;R))[α], Γ}) = (CInterp {L[∀;R. α], Γ}), from
+assert l3: ∀I: Interp, (σ ((L++(∀;R))[α])) = (σ (L[∀;R . α])), from take I: Interp, drop_last_label, -- remover esse Interp do drop
+assert l4: ∀I: Interp, (@CInterp I {(L++(∀;R))[α], Γ}) = (CInterp {L[∀;R. α], Γ}), from
   begin
-    esimp, rewrite l3,
+    intro I, rewrite [(CInterp_append ((L++(∀;R))[α]) Γ), (CInterp_append (L[∀;R. α]) Γ), (CInterp_equal_sigma (l3 I))]
   end,
---have l3: (CInterp {(L++(∀;R))[α], Γ}) = (CInterp {L[∀;R. α], Γ}), from sorry,
 show Δ ⇒ {(L[∀;R .α]), Γ}, from
   begin
-    apply sequent.intro, intro I,
+    apply sequent.intro, intro I, rewrite -(l4 I), exact (l2 I)
   end
 
 section hide
-constants (Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role)
+variables (Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role)
 check (eq.refl (CInterp { (L++(∀;R))[α], Γ}))
 end hide
 
-axiom Axiom2_1 (R: Role) (α β: Concept) : ValueRestr R α⊓β ≡ (ValueRestr R α) ⊓ (ValueRestr R β)
+axiom Axiom2_1 (R: Role) (α β: Concept) : ValueRestr R α⊓β ≣ (ValueRestr R α) ⊓ (ValueRestr R β)
 
 /-
 definition and_l_soundness (Ω: @Set Prop) (Δ Γ: list LabelConc) (L: list Label) (α β: Concept) (p: is_true (isOnlyAllLabel L)) : (Ω⊧ (L[α]::L[β]::Δ)⇒Γ) → (Ω⊧ (L[α⊓β]::Δ)⇒Γ) :=
@@ -752,4 +843,5 @@ definition and_l_soundness (Ω: @Set Prop) (Δ Γ: list LabelConc) (L: list Labe
     apply sequent.meaning,
   end
 -/
+
 end ALC

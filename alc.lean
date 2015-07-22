@@ -605,7 +605,6 @@ definition internalLabel : list Label → list Label
 | internalLabel (R::L) :=
             cond (isNullLabelList L) (R::nil)
                                      (internalLabel L)
-
 definition remainderLabel : list Label → list Label
 | remainderLabel nil := nil
 | remainderLabel (R::L) :=
@@ -633,18 +632,33 @@ namespace test
   example: ((σ pudim) = (σ (downInternalLabel pudim))) := rfl
 end test
 
+example (n: nat) (m: nat) : n + succ m = succ (n + m) := by trivial
+example (L: list Label) (r: Label) (s: Label) (h: r = s) : LabelToPrefix (r::L) = LabelToPrefix (s::L) := by rewrite h
+example (L: list Label) (r: Label) (C: Concept) : σ((r::L) [C]) = (LabelToPrefix r (σ (L[C])) ) :=
+begin
+cases r, repeat trivial,
+end
+
+example (L: list Label) (r: Label) : LabelToPrefix (r::L) = λ C:Concept, LabelToPrefix r (LabelToPrefix L C) :=
+begin
+cases r, repeat trivial,
+end
+
+
+-- Dificuldade com a substituição comentada na demonstração abaixo
 definition σ_downInternalLabel {α: LabelConc} : (σ α) = (σ (downInternalLabel α)) :=
 begin
 apply (LabelConc.induction_on α), intros [l, c], apply (list.induction_on l),
   trivial,
   intros [lab, l2, IndHyp], apply (Label.rec_on lab), all_goals intro r, all_goals rewrite ↑σ at *,
-    rewrite [(eq.refl (∀;r . ((LabelToPrefix l2) c)))],
+    rewrite [(eq.refl (∀;r . ((LabelToPrefix l2) c)))], apply sorry,  --rewrite [(eq.refl (∀;r . (LabelConc.cases_on (downInternalLabel (l2[c])) LabelToPrefix)))],
+    apply sorry
 end
 
 definition drop_last_label {L R: list Label} {α: Concept}: σ ((L++R)[α]) = σ(L[σ(R[α])]) :=
 begin
 apply (list.induction_on L), rewrite (append_nil_left),
-                             intros [a, l, IndHyp], rewrite append_cons, rewrite ↑σ,  --cases a,
+                             intros [a, l, IndHyp], rewrite append_cons, cases a, repeat apply sorry, --rewrite (eq.refl ((LabelToPrefix a) (σ ((l++R)[α])))), rewrite ↑σ,  --cases a,
                               -- apply (eq.refl (∀;a . (LabelToPrefix (l++R) α))),
 /-rewrite ↑LabelToPrefix, rewrite ↓IndHyp,-/
 end
@@ -820,17 +834,12 @@ assert l2: ∀I: Interp, AInterp Δ ⊂ CInterp { (L++(∀;R))[α], Γ}, from se
 assert l3: ∀I: Interp, (σ ((L++(∀;R))[α])) = (σ (L[∀;R . α])), from take I: Interp, drop_last_label, -- remover esse Interp do drop
 assert l4: ∀I: Interp, (@CInterp I {(L++(∀;R))[α], Γ}) = (CInterp {L[∀;R. α], Γ}), from
   begin
-    intro I, rewrite [(CInterp_append ((L++(∀;R))[α]) Γ), (CInterp_append (L[∀;R. α]) Γ), (CInterp_equal_sigma (l3 I))]
+    intro I, rewrite CInterp_cons, rewrite [CInterp_single, drop_last_label],
   end,
 show Δ ⇒ {(L[∀;R .α]), Γ}, from
   begin
     apply sequent.intro, intro I, rewrite -(l4 I), exact (l2 I)
   end
-
-section hide
-variables (Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role)
-check (eq.refl (CInterp { (L++(∀;R))[α], Γ}))
-end hide
 
 axiom Axiom2_1 (R: Role) (α β: Concept) : ValueRestr R α⊓β ≣ (ValueRestr R α) ⊓ (ValueRestr R β)
 

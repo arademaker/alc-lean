@@ -787,9 +787,12 @@ namespace sequent
 
   definition meaning {Δ : list LabelConc} {Γ: list LabelConc} (h: Δ⇒Γ) : ∀I: Interp, (@AInterp I Δ) ⊂ CInterp Γ := -- elimination rule for sequents
 sequent.rec_on h (assume h2: ∀I: Interp, (@AInterp I Δ) ⊂ CInterp Γ, take I: Interp, h2 I)
+
 end sequent
 
 open Label
+
+namespace sequent_calculus
 
 inductive SCALCproof (Ω: @Set Prop) : Prop → Prop :=
 infix `⊢` : 25 := SCALCproof -- \vdash
@@ -806,7 +809,25 @@ infix `⊢` : 25 := SCALCproof -- \vdash
 | all_r : Π(Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role), Ω⊢ Δ⇒{ (L++(∀;R))[α], Γ}  → Ω⊢ Δ⇒{ (L[∀;R .α]), Γ}
 infix `⊢` : 25 := SCALCproof
 
-definition cut_soundness (Ω: @Set Prop) (Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc) : (Ω⊧ Δ1⇒α::Γ1) → (Ω⊧ α::Δ2⇒Γ2) → (Ω⊧ Δ1++Δ2⇒Γ1++Γ2) :=
+definition if_then_TBOX_subsumption (Ω: @Set Prop) (p: Prop) (q: Prop) (h: p → q) : (Ω⊧p) → (Ω⊧q) :=
+begin
+intro h2, rewrite ↑TBOX_subsumption at *, intro h3, apply h, apply h2, exact h3
+end
+
+definition cut_soundness2 (Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc) : (Δ1⇒α::Γ1) → (α::Δ2⇒Γ2) → (Δ1++Δ2⇒Γ1++Γ2) :=
+  assume h: Δ1⇒α::Γ1,
+  assume h2: α::Δ2⇒Γ2,
+  assert l3: ∀I: Interp, AInterp Δ1 ⊂ CInterp (α::Γ1), from sequent.meaning h,
+  assert l4: ∀I: Interp, AInterp (α::Δ2) ⊂ CInterp Γ2, from sequent.meaning h2,
+  show Δ1++Δ2⇒(Γ1++Γ2), from
+    begin
+      apply sequent.intro, intro I, rewrite [(AInterp_append Δ1 Δ2), (CInterp_append Γ1 Γ2)],
+      have l5: (@AInterp I Δ1 ⊂ (interp (σ α)∪(CInterp Γ1))), from eq.subst rfl (l3 I),
+      have l6: ((@interp I (σ α)) ∩ (AInterp Δ2) ⊂ (CInterp Γ2)), from eq.subst rfl (l4 I),
+      exact (SetCut l5 l6),
+    end
+
+/-definition cut_soundness (Ω: @Set Prop) (Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc) : (Ω⊧ Δ1⇒α::Γ1) → (Ω⊧ α::Δ2⇒Γ2) → (Ω⊧ Δ1++Δ2⇒Γ1++Γ2) :=
   assume h: Ω⊧Δ1⇒α::Γ1,
   assume h2: Ω⊧α::Δ2⇒Γ2,
   assume h3: ∀p: Prop, (p∈ Ω → p),
@@ -840,7 +861,7 @@ show Δ ⇒ {(L[∀;R .α]), Γ}, from
   begin
     apply sequent.intro, intro I, rewrite -(l4 I), exact (l2 I)
   end
-
+-/
 axiom Axiom2_1 (R: Role) (α β: Concept) : ValueRestr R α⊓β ≣ (ValueRestr R α) ⊓ (ValueRestr R β)
 
 /-
@@ -853,4 +874,5 @@ definition and_l_soundness (Ω: @Set Prop) (Δ Γ: list LabelConc) (L: list Labe
   end
 -/
 
+end sequent_calculus
 end ALC

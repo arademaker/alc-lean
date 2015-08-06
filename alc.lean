@@ -12,14 +12,6 @@ section SetTheory
 
 -- some necessary logic theorems
 
- 
-
--- [Leo]: The file logic.identities has many useful theorems for "classical" users.
-
--- Remark: when we import logic.axioms.classical, all propositions are treated as decidable.
-
--- See file: library/logic/axioms/prop_decidable.lean
-
 theorem neg_conj {p: Prop} {q: Prop} (h: ¬(p ∧ q)) : ¬p ∨ ¬q :=
 
 iff.mp not_and_iff_not_or_not h
@@ -48,37 +40,6 @@ assume h3: p,
 have l1: q, from h h3,
 show false, from absurd l1 h2
 
-/-
-theorem list.length_rec_on {T: Type} {C: list T → Type}: (Π(L: list T), length L = 0 → C L) → (Π (n: nat), (Π(L: list T), length L = n → C L) → (Π(L: list T), length L = (nat.succ n) → C L)) → Π(L: list T), C L :=
-begin
-intros [Base, InductiveStep, L], apply ((@nat.rec_on (λ(m: ℕ), Π(r: list T), (length r = m) → (C r))) (length L)),
-  exact Base,
-  exact InductiveStep,
-  trivial
-end
-
-constant eq_nil_of_length_eq_zero {T: Type} : ∀ {l : list T}, length l = 0 → l = []
-
-/-theorem length_0_then_nil {T: Type} {L: list T} : length L = 0 → L = list.nil :=
-λ(h: length L = 0), list.rec_on L (rfl)
-                                  (λ(a: T) (r: list T) (h2: length (a::r) = 0), @list.no_confusion T false (a::r) nil)-/
-/-begin
-intro H, apply (list.rec_on L),
-  trivial,
-  intros [a, r, IndHyp], apply (@list.no_confusion T false (a::r) nil),
-end-/
-
-theorem eq_last_reverse_tail_reverse {T: Type} {L: list T}: L = concat (list.last T) (reverse (tail (reverse L))) :=
-
-theorem concat_rec_on {T: Type} {C: list T → Type} (R: list T): C nil → (Π(a: T) (L: list T), C L → C (list.concat a L)) → C R :=
-begin
-intros [Base, InductiveStep], apply list.length_rec_on,
-  intros [L, length_0], have H: L = nil, from eq_nil_of_length_eq_zero length_0, rewrite H, assumption,
-  intros [n, Len_IndHyp, L, length_succ_n],
-
-
-end -/
-
 -- [Leo]: In the long-term, I think it would be easier for you if {A : Type} is an explicit
 
 -- parameter.
@@ -92,7 +53,7 @@ spec: (A → Prop) → Set -- specification, or every set represents and is repr
 definition Property {A : Type} (S : Set) : A → Prop := (Set.rec (λ(P: A → Prop), P)) S
 
 
-definition member {A : Type} (S: @Set A) (a : A) : Prop := Property S a
+definition member [reducible] {A : Type} (S: @Set A) (a : A) : Prop := Property S a
 
 
  
@@ -118,7 +79,7 @@ notation `∅` := EmptySet
 
 notation S `∪` T := Union S T
 
-prefix `∁`:71 := Compl
+prefix `∁`:71 := Compl -- \C 
 
  
 
@@ -251,8 +212,45 @@ definition subset {A: Type} (S: Set) (T: Set) : Prop := ∀x:A, x∈S → x∈T
 
 infix `⊂`:52 := subset
 
-theorem SetEqual {A: Type} {S T : @Set A} : S⊂T∧T⊂S ↔ S=T := sorry
-   
+/-section set_test
+variable A : Type
+variables S T : @Set A
+variable x: A
+variable h: x∈S ↔ x∈T
+variable h2: ∀y:A, y∈S ↔ y∈T
+variable h3: Property S = Property T
+eval x∈S
+eval (propext h)
+check propext h
+
+check funext
+check funext (λy:A, propext (h2 y))
+eval Property S = Property T
+
+example : S = Set.spec (Property S) := rfl
+example : (funext (λy:A, propext (h2 y))) = h3 := by trivial
+
+example : S = T :=
+calc
+  S   = Set.spec (Property S) : rfl
+  ... = Set.spec (Property T) : by rewrite h3
+  ... = T : rfl
+
+end set_test -/
+
+theorem SetEqual {A: Type} {S T : @Set A} : S⊂T∧T⊂S ↔ S=T :=
+iff.intro
+  (assume h: S⊂T∧T⊂S,
+   have l1: ∀x:A, x∈S → x∈T, from (and.elim_left h),
+   have l2: ∀x:A, x∈T → x∈S, from (and.elim_right h),
+   have l3: ∀x:A, x∈S ↔ x∈T, from λx:A, (iff.intro (l1 x) (l2 x)),
+   show S = T, from sorry)
+  (assume h: S = T,
+   have l1: ∀x:A, x∈S → x∈T, from take x:A, assume h2: x∈S, eq.subst h h2,
+   have l2: ∀x:A, x∈T → x∈S, from take x:A, assume h2: x∈T, eq.subst (eq.symm h) h2,
+   have l: ∀x:A, x∈S ↔ x∈T, from λx:A, iff.intro (l1 x) (l2 x),
+   show S⊂T∧T⊂S, from and.intro (λx:A, iff.elim_left (l x)) (λx:A, iff.elim_right (l x)))
+
 theorem IntersUniv {A: Type} {S: @Set A} : S∩U = S :=
 iff.mp SetEqual (and.intro
        (assume x:A,
@@ -432,17 +430,6 @@ begin
     intro x_X, exact (!or.intro_left x_X)
 end
 
-/-take x: A,
-assume h3: x∈B∩C,
-have l:x∈B∧x∈C, from iff.mp (IntersMember x) h3,
-have l2:x∈B, from and.elim_left l,
-have l3:x∈C, from and.elim_right l,
-show x∈X∪Y, from
-  begin
-  apply (or.elim h l2),
-
-  end-/
-
 
 
 end SetTheory
@@ -517,8 +504,8 @@ definition TBOX_subsumption (D : @Set Prop) (α : Prop) : Prop :=
 (forall p: Prop, (p∈D → p)) → α
 infix `⊧` : 1 := TBOX_subsumption --\models
 
-definition models_proof (Ω: @Set Prop) (α: Prop) (h: (∀p: Prop, (p∈ Ω → p)) → α): Ω⊧α :=
-h
+definition validity (α: Prop) : Prop := α
+prefix `⊧` : 1 := validity -- notation overload
 
 example (C D : Concept) : C⊓D ⊑ C :=
 take (I : Interp),
@@ -585,6 +572,8 @@ definition negLabel: list Label → list Label  -- negation of a list of labels
 | negLabel ((Label.all R)::L) := (Label.ex R)::(negLabel L)
 | negLabel ((Label.ex R)::L) := (Label.all R)::(negLabel L)
 
+prefix `¬` := negLabel
+
 definition AppendLabelList (L: list Label) (α: LabelConc) : LabelConc :=
 LabelConc.rec_on α (λ(R: list Label) (C: Concept), (L++R)[C])
 
@@ -632,36 +621,20 @@ namespace test
   example: ((σ pudim) = (σ (downInternalLabel pudim))) := rfl
 end test
 
-example (n: nat) (m: nat) : n + succ m = succ (n + m) := by trivial
-example (L: list Label) (r: Label) (s: Label) (h: r = s) : LabelToPrefix (r::L) = LabelToPrefix (s::L) := by rewrite h
-example (L: list Label) (r: Label) (C: Concept) : σ((r::L) [C]) = (LabelToPrefix r (σ (L[C])) ) :=
-begin
-cases r, repeat trivial,
-end
-
-example (L: list Label) (r: Label) : LabelToPrefix (r::L) = λ C:Concept, LabelToPrefix r (LabelToPrefix L C) :=
-begin
-cases r, repeat trivial,
-end
-
-
--- Dificuldade com a substituição comentada na demonstração abaixo
-definition σ_downInternalLabel {α: LabelConc} : (σ α) = (σ (downInternalLabel α)) :=
-begin
-apply (LabelConc.induction_on α), intros [l, c], apply (list.induction_on l),
-  trivial,
-  intros [lab, l2, IndHyp], apply (Label.rec_on lab), all_goals intro r, all_goals rewrite ↑σ at *,
-    rewrite [(eq.refl (∀;r . ((LabelToPrefix l2) c)))], apply sorry,  --rewrite [(eq.refl (∀;r . (LabelConc.cases_on (downInternalLabel (l2[c])) LabelToPrefix)))],
-    apply sorry
-end
-
 definition drop_last_label {L R: list Label} {α: Concept}: σ ((L++R)[α]) = σ(L[σ(R[α])]) :=
 begin
 apply (list.induction_on L), rewrite (append_nil_left),
-                             intros [a, l, IndHyp], rewrite append_cons, cases a, repeat apply sorry, --rewrite (eq.refl ((LabelToPrefix a) (σ ((l++R)[α])))), rewrite ↑σ,  --cases a,
-                              -- apply (eq.refl (∀;a . (LabelToPrefix (l++R) α))),
-/-rewrite ↑LabelToPrefix, rewrite ↓IndHyp,-/
+                             intros [a, l, IndHyp], rewrite append_cons, cases a,
+                               have g: (σ (((∀;a)::l ++ R)[α])) = (∀;a . (σ ((l++R)[α]))), from rfl, rewrite [g, IndHyp],
+                               have g: (σ (((Label.ex a)::l ++ R)[α])) = (∃;a . (σ ((l++R)[α]))), from rfl, rewrite [g, IndHyp],
 end
+
+/-theorem σ_neg {L: list Label} {C: Concept} {I: Interp} : (@interp I (σ((¬L)[¬C]))) = ∁(interp (σ(L[C]))) :=
+begin
+apply (list.rec_on L),
+  trivial,
+  intros [a, r, IndHyp], apply drop_last_label,
+end -/
 
 definition isOnlyAllLabel : list Label → bool
 | isOnlyAllLabel nil := tt
@@ -780,6 +753,9 @@ namespace test2
   eval {d[e],a}
   check {d[e],a}
   check {(d2::d2::d)[e],a}
+  check [c, c2, c3]
+  check AInterp ([c, c2, c3])
+  check AInterp {c, c2}
   -- Seria interessante conseguir utilizar a notação {a, b, b}...
 end test2
 
@@ -827,42 +803,22 @@ definition cut_soundness2 (Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc) : (�
       exact (SetCut l5 l6),
     end
 
-/-definition cut_soundness (Ω: @Set Prop) (Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc) : (Ω⊧ Δ1⇒α::Γ1) → (Ω⊧ α::Δ2⇒Γ2) → (Ω⊧ Δ1++Δ2⇒Γ1++Γ2) :=
-  assume h: Ω⊧Δ1⇒α::Γ1,
-  assume h2: Ω⊧α::Δ2⇒Γ2,
-  assume h3: ∀p: Prop, (p∈ Ω → p),
-  have l1: Δ1⇒α::Γ1, from h h3,
-  have l2: α::Δ2⇒Γ2, from h2 h3,
-  have l3: ∀I: Interp, AInterp Δ1 ⊂ CInterp (α::Γ1), from sequent.meaning l1,
-  have l4: ∀I: Interp, AInterp (α::Δ2) ⊂ CInterp Γ2, from sequent.meaning l2,
-  assert l5: (∀I: Interp, AInterp Δ1 ⊂ (interp (σ α)∪(CInterp Γ1))), from
-    take I: Interp,
-    eq.subst rfl (l3 I),
-  assert l6: (∀I: Interp, (@interp I (σ α)) ∩ (AInterp Δ2) ⊂ (CInterp Γ2)), from
-    take I: Interp,
-    eq.subst rfl (l4 I),
-  show Δ1++Δ2⇒(Γ1++Γ2), from
-    begin
-      apply sequent.intro, intro I, rewrite [(AInterp_append Δ1 Δ2), (CInterp_append Γ1 Γ2)], exact (SetCut (l5 I) (l6 I)),
-    end
+definition all_r_soundness2 (Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role):
+Δ⇒{(L++(∀;R))[α], Γ} → Δ⇒{L[∀;R .α], Γ} :=
+begin
+  intro h, apply sequent.intro, intro I, have l1: (AInterp Δ) ⊂ (CInterp {(L++(∀;R))[α], Γ}), from (sequent.meaning h) I,
+rewrite CInterp_cons at *, rewrite CInterp_single at *, rewrite drop_last_label at l1, exact l1,
+end
 
-definition all_r_soundness (Ω: @Set Prop) (Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role):
-(Ω⊧ (Δ⇒{ (L++(∀;R))[α], Γ}))  →  (Ω⊧ Δ⇒{ L[∀;R .α], Γ}) :=
-assume h: Ω⊧( Δ⇒{ (L++(∀;R))[α], Γ}),
-assume h2: ∀p: Prop, (p∈Ω → p),
-have l1: Δ⇒{ (L++(∀;R))[α], Γ}, from h h2,
-assert l2: ∀I: Interp, AInterp Δ ⊂ CInterp { (L++(∀;R))[α], Γ}, from sequent.meaning l1,
-assert l3: ∀I: Interp, (σ ((L++(∀;R))[α])) = (σ (L[∀;R . α])), from take I: Interp, drop_last_label, -- remover esse Interp do drop
-assert l4: ∀I: Interp, (@CInterp I {(L++(∀;R))[α], Γ}) = (CInterp {L[∀;R. α], Γ}), from
-  begin
-    intro I, rewrite CInterp_cons, rewrite [CInterp_single, drop_last_label],
-  end,
-show Δ ⇒ {(L[∀;R .α]), Γ}, from
-  begin
-    apply sequent.intro, intro I, rewrite -(l4 I), exact (l2 I)
-  end
--/
+/-definition neg_l_soundness (Δ Γ: list LabelConc) (L: list Label) (α: Concept):
+Δ ⇒ {(¬L)[α], Γ} → {L[¬α], Δ} ⇒ Γ :=
+begin
+intro h, apply sequent.intro, intro I, have l1: (@AInterp I Δ) ⊂ (CInterp {(¬L)[α], Γ}), from (sequent.meaning h) I, rewrite [AInterp_cons, AInterp_single], rewrite CInterp_cons at l1, rewrite CInterp_single at l1,
+end -/
+
+
 axiom Axiom2_1 (R: Role) (α β: Concept) : ValueRestr R α⊓β ≣ (ValueRestr R α) ⊓ (ValueRestr R β)
+
 
 /-
 definition and_l_soundness (Ω: @Set Prop) (Δ Γ: list LabelConc) (L: list Label) (α β: Concept) (p: is_true (isOnlyAllLabel L)) : (Ω⊧ (L[α]::L[β]::Δ)⇒Γ) → (Ω⊧ (L[α⊓β]::Δ)⇒Γ) :=

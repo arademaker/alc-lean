@@ -467,8 +467,8 @@ notation `⊥` := BottomConcept --\bot
 prefix `¬` := Negation --\neg
 infix `⊓` :51 := Intersection --sqcap
 infix `⊔` :51 := Union -- \sqcup
-notation ∃; R . C := ExistQuant R C
 notation `∀;` R . C := ValueRestr R C -- overload not working for: `∀` R . C
+notation `∃;` R . C := ExistQuant R C
 
 
 structure Interp := -- interpretation structure
@@ -486,9 +486,31 @@ definition interp {I: Interp} : Concept → Set -- Concept Interpretation
 | interp ¬C := ∁(interp C)
 | interp (C1⊓C2) := (interp C1)∩(interp C2)
 | interp (C1⊔C2) := (interp C1)∪(interp C2)
-| interp (∃;R. C) := Set.spec (λa:Interp.δ I, exists b : Interp.δ I, (a, b)∈(!r_interp R) ∧ b∈(interp C) )
 | interp (ValueRestr R C) := Set.spec (λa:Interp.δ I, forall b : Interp.δ I, ((a, b)∈(!r_interp R)) → b∈(interp C))
+| interp (∃;R. C) := Set.spec (λa:Interp.δ I, exists b : Interp.δ I, (a, b)∈(!r_interp R) ∧ b∈(interp C) )
 
+theorem eq_interp_ValueRestr {r: Role} {C D: Concept} {I: Interp} (h: (@interp I C) = interp D) : (@interp I (∀;r . C)) = (interp (∀;r . D)) :=
+begin
+rewrite ↑interp, rewrite h,
+end
+
+theorem eq_interp_ExistQuant {r: Role} {C D: Concept} {I: Interp} (h: (@interp I C) = interp D) : (@interp I (∃;r . C)) = (interp (∃;r . D)) :=
+begin
+rewrite ↑interp, rewrite h,
+end
+
+theorem neg_ValueRestr {r: Role} {C: Concept} {I: Interp} : (@interp I (¬(∀; r . C))) = (interp (∃; r. ¬C)) :=
+begin
+rewrite ↑interp, apply (iff.mp SetEqual), apply and.intro, all_goals rewrite ↑subset, all_goals rewrite ↑interp at *, all_goals intros [x, h],
+  have l: ¬(∀(b: Interp.δ I), (x,b) ∈ r_interp r → b ∈ (interp C)), from h,
+    have l2: ∃(b: Interp.δ I), (¬((x,b) ∈ r_interp r → b ∈ (interp C))), from (exists_not_of_not_forall l),
+    have l3: ∃(b: Interp.δ I), (x,b) ∈ r_interp r ∧ b ∉ (interp C), from (iff.mp not_implies_iff_and_not) l2,
+end
+
+theorem eq_compl_interp_ValueRestr {r: Role} {C D: Concept} {I: Interp} (h: (@interp I C) = ∁(interp D)) : (@interp I (∀;r . C)) = ∁(interp (∀; r. D)) :=
+/-begin
+rewrite ↑interp, rewrite h, --have l: (@interp I (∀;r . ¬D)) = (interp (∀;r . C)), from h,
+end-/
 
 definition satisfiable (C : Concept) : Prop :=
 exists I : Interp, @interp I C ≠ ∅
@@ -567,12 +589,23 @@ definition getLabelList : LabelConc → list Label
 definition σ [reducible] : LabelConc → Concept
 | σ (LabelConc.mk L C) := (LabelToPrefix L) C
 
-definition negLabel: list Label → list Label  -- negation of a list of labels
-| negLabel nil := nil
-| negLabel ((Label.all R)::L) := (Label.ex R)::(negLabel L)
-| negLabel ((Label.ex R)::L) := (Label.all R)::(negLabel L)
+definition negLabel: Label → Label
+| negLabel (Label.all R) := Label.ex R
+| negLabel (Label.ex R) := Label.all R
 
 prefix `¬` := negLabel
+
+definition negLabelList: list Label → list Label  -- negation of a list of labels
+| negLabelList nil := nil
+| negLabelList ((Label.all R)::L) := (Label.ex R)::(negLabelList L)
+| negLabelList ((Label.ex R)::L) := (Label.all R)::(negLabelList L)
+
+prefix `¬` := negLabelList --notation overload
+
+theorem negLabel_append {L: Label} {R: list Label} : (¬(L::R)) = (¬L)::(¬R) :=
+begin
+apply (Label.rec_on L), all_goals intro r, all_goals rewrite ↑negLabelList,
+end
 
 definition AppendLabelList (L: list Label) (α: LabelConc) : LabelConc :=
 LabelConc.rec_on α (λ(R: list Label) (C: Concept), (L++R)[C])
@@ -619,7 +652,15 @@ namespace test
   eval downInternalLabel pudim
   example: C = C := rfl
   example: ((σ pudim) = (σ (downInternalLabel pudim))) := rfl
+  constant lab: Label
+  check ¬lab
+  eval ¬∀;R
+  check [lab]
 end test
+
+theorem ValueRestr_interp {r: Role} {C: Concept} {I: Interp} : (@interp I (σ ((∀;r)[C]))) = (interp ∀;r. C) := rfl
+
+theorem ExistQuant_interp {r: Role} {C: Concept} {I: Interp} : (@interp I (σ ((Label.ex r)[C]))) = (interp ∃;r. C) := rfl
 
 definition drop_last_label {L R: list Label} {α: Concept}: σ ((L++R)[α]) = σ(L[σ(R[α])]) :=
 begin
@@ -629,12 +670,26 @@ apply (list.induction_on L), rewrite (append_nil_left),
                                have g: (σ (((Label.ex a)::l ++ R)[α])) = (∃;a . (σ ((l++R)[α]))), from rfl, rewrite [g, IndHyp],
 end
 
-/-theorem σ_neg {L: list Label} {C: Concept} {I: Interp} : (@interp I (σ((¬L)[¬C]))) = ∁(interp (σ(L[C]))) :=
+definition drop_last_label_append {L: Label} {R: list Label} {α: Concept}: σ ((L::R)[α]) = σ(L[σ(R[α])]) :=
+begin
+apply drop_last_label,
+end
+
+theorem interp_σ_eq_interp {L: list Label} {C D: Concept} {I: Interp} (h: (@interp I C) = (interp D)) : (@interp I (σ(L[C]))) = (interp (σ(L[D]))) :=
+begin
+apply list.rec_on L,
+  trivial,
+  intros [l, L2, IndHyp], repeat rewrite drop_last_label_append, apply Label.rec_on l, all_goals intro r,
+    repeat rewrite ValueRestr_interp, rewrite (eq_interp_ValueRestr IndHyp),
+    repeat rewrite ExistQuant_interp, rewrite (eq_interp_ExistQuant IndHyp),
+end
+
+theorem interp_negLabelList {L: list Label} {C: Concept} {I: Interp} : (@interp I (σ((¬L)[¬C]))) = ∁(interp (σ(L[C]))) :=
 begin
 apply (list.rec_on L),
   trivial,
-  intros [a, r, IndHyp], apply drop_last_label,
-end -/
+  intros [a, L2, IndHyp], rewrite negLabel_append, repeat rewrite drop_last_label_append, apply (Label.rec_on a), all_goals intro r, all_goals rewrite ↑negLabel,   --apply Label.rec_on a, all_goals intro r,
+end 
 
 definition isOnlyAllLabel : list Label → bool
 | isOnlyAllLabel nil := tt
@@ -806,7 +861,7 @@ definition cut_soundness2 (Δ1 Δ2 Γ1 Γ2: list LabelConc) (α: LabelConc) : (�
 definition all_r_soundness2 (Δ Γ: list LabelConc) (L: list Label) (α: Concept) (R: Role):
 Δ⇒{(L++(∀;R))[α], Γ} → Δ⇒{L[∀;R .α], Γ} :=
 begin
-  intro h, apply sequent.intro, intro I, have l1: (AInterp Δ) ⊂ (CInterp {(L++(∀;R))[α], Γ}), from (sequent.meaning h) I,
+  intro h, apply sequent.intro, intro I, have l1: (@AInterp I Δ) ⊂ (CInterp {(L++(∀;R))[α], Γ}), from (sequent.meaning h) I,
 rewrite CInterp_cons at *, rewrite CInterp_single at *, rewrite drop_last_label at l1, exact l1,
 end
 

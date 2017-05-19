@@ -1,438 +1,47 @@
-import logic.identities logic.axioms.classical data.list
+-- import logic.identities logic.axioms.classical data.list
+import init.logic init.data.set
 open bool list
-
-
-section SetTheory
-
--- print instances decidable
--- some necessary logic theorems
-
--- [Leo]: The file logic.identities has many useful theorems for
--- "classical" users.  Remark: when we import logic.axioms.classical,
--- all propositions are treated as decidable.  See file:
--- library/logic/axioms/prop_decidable.lean
-
-
-theorem neg_conj {p: Prop} {q: Prop} (h: ¬(p ∧ q)) : ¬p ∨ ¬q :=
-  iff.mp not_and_iff_not_or_not h
-
-
-
-theorem double_neg {p : Prop} (h: ¬¬p) : p :=
-  iff.mp not_not_iff h
-
-
-/-theorem iff_neg {p q : Prop} (h:p↔q) : ¬p↔¬q :=
-iff.intro
-    (assume h2:¬p,
-     assume h3:q,
-     have l:p, from (iff.mp' h) h3,
-     show false, from absurd l h2)
-    (assume h2:¬q,
-     assume h3:p,
-     have l:q, from (iff.mp h) h3,
-     show false, from absurd l h2)-/
-
-
-theorem contraposition {p q : Prop} (h: p→q) : ¬q→¬p :=
-  assume h2: ¬q,
-  assume h3: p,
-  have l1: q, from h h3,
-  show false, from absurd l1 h2
-
-
--- [Leo]: In the long-term, I think it would be easier for you if {A :
--- Type} is an explicit parameter.
-
-inductive Set {A : Type} : Type :=
-
-spec: (A → Prop) → Set -- specification, or every set represents and is represented by a Property (a proposition)
-
-
-
-definition Property {A : Type} (S : Set) : A → Prop := (Set.rec (λ(P: A → Prop), P)) S
-
-definition member {A : Type} (S: @Set A) (a : A) : Prop := Property S a
-
-notation a `∈` S := member S a
-notation a `∉` S := ¬ a∈S
-
-
-definition UnivSet {A : Type} : Set := Set.spec (λx:A, x=x) -- Universal Set
-
-definition EmptySet {A : Type} : Set := Set.spec (λx: A, ¬x=x)
-
-definition Union {A : Type} (S : Set) (T : Set) : Set := Set.spec (λ(x: A), x∈S∨x∈T)
-
-definition Compl {A : Type} (S : Set) : Set := Set.spec (λ(x: A), x∉S) -- complementar
-
-
-notation `U` := UnivSet
-notation `∅` := EmptySet
-notation S `∪` T := Union S T
-prefix `∁`:71 := Compl
-
-
-
-definition Inters {A : Type} (S : @Set A) (T : @Set A) : @Set A :=
-  ∁(∁S ∪ ∁T)
-
-notation S `∩` T := Inters S T
-
-
-definition Diff {A : Type} (S : Set) (T : Set) : @Set A :=
-  S∩(∁T)
-
-infix `∖`:51 := Diff
-
-
-
-theorem UnivMember {A : Type} : ∀(x: A), x∈UnivSet :=
-
-take x: A,
-
-have h: x=x, from rfl,
-
-show x∈UnivSet, from h
-
-
-
-theorem EmptyMember {A: Type} : ∀(x: A), x∉EmptySet :=
-
-take x: A,
-
-assume h2: x∈EmptySet,
-
-have l: x=x, from rfl,
-
-have l2: x≠x, from h2,
-
-show false, from absurd l l2
-
-
-
-theorem UnionMember {A: Type} {S: Set} {T: Set} : ∀(x: A), x∈(S∪T)↔(x∈S ∨ x∈T) :=
-
-take x: A,
-
-iff.intro
-
-    (assume h: x∈(S∪T),
-
-     have l1: x∈S∨x∈T, from h,
-
-     or.elim l1
-
-        (assume l2: x∈S,
-
-         show x∈S∨x∈T, from or.intro_left (x∈T) l2)
-
-         (assume l2: x∈T,
-
-         show x∈S∨x∈T, from or.intro_right (x∈S) l2))
-
-    (assume h: x∈S∨x∈T,
-
-     show x∈(S∪T), from h)
-
-
-
-theorem ComplMember {A: Type} {S: Set} : ∀(x: A), x∉S ↔ x∈∁S :=
-
-take x: A,
-
-iff.intro
-
-    (assume h: x∉S,
-
-     show x∈∁S, from h)
-
-    (assume h: x∈∁S,
-
-     show x∉S, from h)
-
-theorem IntersMember {A: Type} {S: Set} {T: Set} : ∀(x:A), x∈(S∩T)↔(x∈S ∧ x∈T) :=
-take x: A,
-iff.intro
-    (assume h: x∈(S∩T),
-     have l1: x∉(∁S∪∁T), from h,
-     have l2: ¬(x∈∁S ∨ x∈∁T), from l1,
-     have l3: x∉∁S ∧ x∉∁T, from iff.mp not_or_iff_not_and_not l2,
-     have l4: x∉∁S, from and.elim_left l3,
-     have l5: x∉∁T, from and.elim_right l3,
-     have l6: x∈S, from not_not_elim (contraposition (iff.mp (ComplMember x)) l4),
-     have l7: x∈T, from not_not_elim (contraposition (iff.mp (ComplMember x)) l5),
-     show x∈S ∧ x∈T, from and.intro l6 l7)
-    (assume h: x∈S∧x∈T,
-     have l1: x∈S, from and.elim_left h,
-     have l2: x∈T, from and.elim_right h,
-     have l3: x∉∁S, from (contraposition (iff.mp' (ComplMember x)) (iff.mp' not_not_iff l1)),
-     have l4: x∉∁T, from (contraposition (iff.mp' (ComplMember x)) (iff.mp' not_not_iff l2)),
-     have l5: x∉∁S∧x∉∁T, from and.intro l3 l4,
-     have l6: ¬(x∈∁S ∨ x∈∁T), from iff.mp' not_or_iff_not_and_not l5,
-     have l7: x∉(∁S∪∁T), from l6,
-     show x∈S∩T, from l7)
-
-theorem DiffMember {A: Type} {S: Set} {T: Set} : ∀(x: A), x∈(S∖T)↔(x∈S ∧ x∉T) :=
-take x:A,
-iff.intro
-    (assume h: x∈(S∖T),
-     have l: x∈S∩∁T, from h,
-     have l2: x∈S∧x∈∁T, from iff.mp (IntersMember x) l,
-     have l3: x∈S, from and.elim_left l2,
-     have l4: x∈∁T, from and.elim_right l2,
-     have l5: x∉T, from iff.mp' (ComplMember x) l4,
-     show x∈S∧x∉T, from and.intro l3 l5)
-    (assume h:x∈S∧x∉T,
-     have l: x∈S, from and.elim_left h,
-     have l2: x∉T, from and.elim_right h,
-     have l3: x∈∁T, from iff.mp (ComplMember x) l2,
-     have l4: x∈S∧x∈∁T, from and.intro l l3,
-     have l5: x∈S∩∁T, from iff.mp' (IntersMember x) l4,
-     show x∈(S∖T), from l5)
-
-
-definition subset {A: Type} (S: Set) (T: Set) : Prop := ∀x:A, x∈S → x∈T
-
-infix `⊂`:52 := subset
-
-axiom SetEqual {A: Type} {S T : @Set A} : S⊂T∧T⊂S ↔ S=T
-
-theorem IntersUniv {A: Type} {S: @Set A} : S∩U = S :=
-iff.mp SetEqual (and.intro
-       (assume x:A,
-        assume h:x∈S∩U,
-        have l:x∈S∧x∈U, from iff.mp (IntersMember x) h,
-        show x∈S, from and.elim_left l)
-       (assume x:A,
-        assume h:x∈S,
-        have l:x∈U, from UnivMember x,
-        have l2:x∈S∧x∈U, from and.intro h l,
-        show x∈S∩U, from iff.mp' (IntersMember x) l2))
-
-theorem Inters_commu {A: Type} (B C: @Set A) : B∩C = C∩B :=
-iff.mp SetEqual (and.intro
-       (assume x:A,
-        assume h:x∈B∩C,
-        have l:x∈B∧x∈C, from iff.mp (IntersMember x) h,
-        have l2:x∈B, from and.elim_left l,
-        have l3:x∈C, from and.elim_right l,
-        have l4:x∈C∧x∈B, from and.intro l3 l2,
-        show x∈C∩B, from iff.mp' (IntersMember x) l4)
-       (assume x:A,
-        assume h:x∈C∩B,
-        have l:x∈C∧x∈B, from iff.mp (IntersMember x) h,
-        have l2:x∈C, from and.elim_left l,
-        have l3:x∈B, from and.elim_right l,
-        have l4:x∈B∧x∈C, from and.intro l3 l2,
-        show x∈B∩C, from iff.mp' (IntersMember x) l4))
-
-theorem Inters_assoc {A: Type} {B C D: @Set A} : B∩(C∩D) = (B∩C)∩D :=
-iff.mp SetEqual (and.intro
-       (assume x:A,
-        assume h:x∈B∩(C∩D),
-        have l: x∈B∧x∈(C∩D), from iff.mp (IntersMember x) h,
-        have l2: x∈B, from and.elim_left l,
-        have l3: x∈(C∩D), from and.elim_right l,
-        have l4: x∈C∧x∈D, from iff.mp (IntersMember x) l3,
-        have l5: x∈C, from and.elim_left l4,
-        have l6: x∈D, from and.elim_right l4,
-        have l7: x∈B∧x∈C, from and.intro l2 l5,
-        have l8: x∈B∩C, from iff.mp' (IntersMember x) l7,
-        have l9: x∈B∩C∧x∈D, from and.intro l8 l6,
-        show x∈(B∩C)∩D, from iff.mp' (IntersMember x) l9)
-       (assume x:A,
-        assume h:x∈(B∩C)∩D,
-        have l: x∈B∩C∧x∈D, from iff.mp (IntersMember x) h,
-        have l2: x∈B∩C, from and.elim_left l,
-        have l3: x∈D, from and.elim_right l,
-        have l4: x∈B∧x∈C, from iff.mp (IntersMember x) l2,
-        have l5: x∈B, from and.elim_left l4,
-        have l6: x∈C, from and.elim_right l4,
-        have l7: x∈C∧x∈D, from and.intro l6 l3,
-        have l8: x∈C∩D, from iff.mp' (IntersMember x) l7,
-        have l9: x∈B∧x∈C∩D, from and.intro l5 l8,
-        show x∈B∩(C∩D), from iff.mp' (IntersMember x) l9))
-
-theorem subset_inters {A: Type} {B C D: @Set A} : B⊂C → (D∩B⊂D∩C) :=
-  assume h: B⊂C,
-  take x: A,
-  assume h2:x∈D∩B,
-  have l: x∈D∧x∈B, from iff.mp (IntersMember x) h2,
-  have l2: x∈B, from and.elim_right l,
-  have l3: x∈D, from and.elim_left l,
-  have l4: x∈C, from h x l2,
-  have l5: x∈D∧x∈C, from and.intro l3 l4,
-  show x∈(D∩C), from iff.mp' (IntersMember x) l5
-
-theorem subset_trans {A: Type} {B C D: @Set A} : B⊂C → C⊂D → B⊂D :=
-  assume h:B⊂C,
-  assume h2:C⊂D,
-  take x:A,
-  assume h3: x∈B,
-  have l: x∈C, from h x h3,
-  show x∈D, from h2 x l
-
-theorem UnionEmpty {A: Type} {S: @Set A}: S∪∅ = S :=
-iff.mp SetEqual (and.intro
-  (assume x: A,
-   assume h: x∈S∪∅,
-   have l: x∈S∨x∈∅, from iff.mp (UnionMember x) h,
-   show x∈S, from or.elim l
-                  (assume h2: x∈S,
-                   h2)
-                  (assume h2: x∈∅,
-                   absurd h2 (EmptyMember x)))
-  (assume x:A,
-   assume h:x∈S,
-   have l:x∈S∨x∈∅, from or.intro_left (x∈∅) h,
-   show x∈S∪∅, from iff.mp' (UnionMember x) l))
-
-theorem Union_commu {A: Type} (S T: @Set A): S∪T = T∪S :=
- iff.mp SetEqual (and.intro
-   (assume x:A,
-    assume h:x∈S∪T,
-    have l:x∈S∨x∈T, from iff.mp (UnionMember x) h,
-    have l2: x∈T∨x∈S, from iff.mp or.comm l,
-    show x∈T∪S, from iff.mp' (UnionMember x) l2)
-   (assume x:A,
-    assume h:x∈T∪S,
-    have l:x∈T∨x∈S, from iff.mp (UnionMember x) h,
-    have l2: x∈S∨x∈T, from iff.mp or.comm l,
-    show x∈S∪T, from iff.mp' (UnionMember x) l2))
-
-theorem Union_assoc {A: Type} {R S T: @Set A} : R∪(S∪T) = (R∪S)∪T :=
-iff.mp SetEqual (and.intro
-  (assume x:A,
-   assume h:x∈(R∪(S∪T)),
-   have l:x∈R∨x∈S∪T, from iff.mp (UnionMember x) h,
-   or.elim l
-     (assume h2:x∈R,
-      have l2:x∈R∨x∈S, from !or.intro_left h2,
-      have l3:x∈R∪S, from iff.mp' (UnionMember x) l2,
-      have l4:x∈(R∪S)∨x∈T, from !or.intro_left l3,
-      show x∈(R∪S)∪T, from iff.mp' (UnionMember x) l4)
-     (assume h2:x∈S∪T,
-      have l2:x∈S∨x∈T, from iff.mp (UnionMember x) h2,
-      show x∈(R∪S)∪T, from or.elim l2
-        (assume h3:x∈S,
-         have l3:x∈R∨x∈S, from !or.intro_right h3,
-         have l4:x∈R∪S, from iff.mp' (UnionMember x) l3,
-         have l5:x∈R∪S∨x∈T, from or.intro_left (x∈T) l4,
-         show x∈(R∪S)∪T, from iff.mp' (UnionMember x) l5)
-        (assume h3:x∈T,
-         have l5:x∈R∪S∨x∈T, from or.intro_right (x∈R∪S) h3,
-         show x∈(R∪S)∪T, from iff.mp' (UnionMember x) l5)))
-   (assume x:A,
-    assume h:x∈(R∪S)∪T,
-    have l:x∈R∪S∨x∈T, from iff.mp (UnionMember x) h,
-    show x∈R∪(S∪T), from or.elim l
-      (assume h2: x∈R∪S,
-       have l2:x∈R∨x∈S, from iff.mp (UnionMember x) h2,
-       show x∈R∪(S∪T), from or.elim l2
-            (assume h3:x∈R,
-             have l3: x∈R∨x∈S∪T, from or.intro_left (x∈S∪T) h3,
-             show x∈R∪(S∪T), from iff.mp' (UnionMember x) l3)
-            (assume h3:x∈S,
-             have l3: x∈S∨x∈T, from or.intro_left (x∈T) h3,
-             have l4:x∈S∪T, from iff.mp' (UnionMember x) l3,
-             have l5:x∈R∨x∈S∪T, from or.intro_right (x∈R) l4,
-             show x∈R∪(S∪T), from iff.mp' (UnionMember x) l5))
-       (assume h2:x∈T,
-        have l2:x∈S∨x∈T, from or.intro_right (x∈S) h2,
-        have l3:x∈S∪T, from iff.mp' (UnionMember x) l2,
-        have l4:x∈R∨x∈S∪T, from or.intro_right (x∈R) l3,
-        show x∈R∪(S∪T), from iff.mp' (UnionMember x) l4)))
-
--- I've copied this incomplete proof of this theorem because in this last step, LEAN says it couldn't
--- unify x ∈ α∩C with false. However, (iff.mp' (IntersMember x)) produces x∈ ?S ∧ x∈?T → x∈?S∪?T
--- What's wrong here?
-
-/-theorem SetCut {A: Type} {B C α X Y: @Set A} (h: B⊂α∪X) (h2: α∩C⊂Y): B∩C ⊂ X∪Y :=
-begin
-  intro x,
-  intro h3,
-  have l:x∈B∧x∈C, from iff.mp (IntersMember x) h3,
-  have l2:x∈B, from and.elim_left l,
-  have l3:x∈C, from and.elim_right l,
-  have l4:x∈α∨x∈X, from (iff.mp (UnionMember x) (h x l2)),
-  apply (iff.mp' (UnionMember x)),
-  apply (or.elim l4),
-    intro x_α, apply !or.intro_right, apply (h2 x), apply (iff.mp' (IntersMember x)),
-
-end-/
-
-
-theorem SetCut {A: Type} {B C α X Y: @Set A} (h: B⊂α∪X) (h2: α∩C⊂Y): B∩C ⊂ X∪Y :=
-begin
-  intro x,
-  intro h3,
-  have l:x∈B∧x∈C, from iff.mp (IntersMember x) h3,
-  have l2:x∈B, from and.elim_left l,
-  have l3:x∈C, from and.elim_right l,
-  have l4:x∈α∨x∈X, from (iff.mp (UnionMember x) (h x l2)),
-  apply (iff.mp' (UnionMember x)),
-  apply (or.elim l4),
-    intro x_α, apply !or.intro_right, apply (h2 x), have l5: x∈α∧x∈C, from (and.intro x_α l3), exact (iff.mp' (IntersMember x) l5),
-    intro x_X, exact (!or.intro_left x_X)
-end
-
-/-take x: A,
-assume h3: x∈B∩C,
-have l:x∈B∧x∈C, from iff.mp (IntersMember x) h3,
-have l2:x∈B, from and.elim_left l,
-have l3:x∈C, from and.elim_right l,
-show x∈X∪Y, from
-  begin
-  apply (or.elim h l2),
-
-  end-/
-
-end SetTheory
 
 
 namespace ALC
 
-universe UNI
-constants AtomicConcept AtomicRole : Type.{UNI}
+constants AtomicConcept AtomicRole : Type
 
-inductive Role : Type :=
+inductive Role : Type
   | Atomic : AtomicRole → Role
 
-inductive Concept : Type :=
+inductive Concept : Type 
   | TopConcept : Concept
   | BottomConcept : Concept
   | Atomic :  AtomicConcept → Concept
   | Negation : Concept → Concept
   | Intersection : Concept → Concept → Concept
   | Union : Concept → Concept → Concept
-  | ExistQuant : Role → Concept → Concept
-  | ValueRestr : Role → Concept → Concept
+  | Ex : Role → Concept → Concept
+  | Al : Role → Concept → Concept
+
+-- open Concept Role
+
+notation      `⊤` := Concept.TopConcept    -- \top
+notation      `⊥` := Concept.BottomConcept -- \bot
+prefix        `¬` := Concept.Negation      -- \neg
+infix     `⊓` :51 := Concept.Intersection  -- \sqcap
+infix     `⊔` :51 := Concept.Union         -- \sqcup
+notation `E` R . C := Concept.Ex R C
+notation `A` R . C := Concept.Al R C 
 
 
---attribute Concept.Atomic [coercion]
---attribute Role.Atomic [coercion]
-
-open Concept
-open Role
-
-notation `⊤` := TopConcept --\top
-notation `⊥` := BottomConcept --\bot
-prefix `¬` := Negation --\neg
-infix `⊓` :51 := Intersection --sqcap
-infix `⊔` :51 := Union -- \sqcup
-notation ∃; R . C := ExistQuant R C
-notation `∀;` R . C := ValueRestr R C -- overload not working for: `∀` R . C
+-- interpretation structure δ is the Universe
+structure Interp := 
+mk :: (δ : Type)   
+      (atom_C : AtomicConcept → set δ)
+      (atom_R : AtomicRole → set (δ × δ))
 
 
-structure Interp := -- interpretation structure
-mk :: (δ : Type.{UNI}) -- δ is the Universe
-      (atom_C : AtomicConcept → @Set δ)
-      (atom_R : AtomicRole → @Set (δ×δ))
+-- Role interpretation
+definition r_interp {I : Interp} : Role → set (Interp.δ I × Interp.δ I)  
+  | r_interp (Role.Atomic R) := Interp.atom_R I R
 
-
-definition r_interp {I : Interp} : Role → @Set(Interp.δ I × Interp.δ I)  -- Role interpretation
-  | r_interp (Atomic R) := !Interp.atom_R R
 
 definition interp {I: Interp} : Concept → Set -- Concept Interpretation
   | interp ⊤ := U
@@ -470,6 +79,11 @@ assume h : x ∈ interp (C⊓D),
 have l: x ∈ (interp C)∩(interp D), from h,
 have l2: x∈(interp C)∧x∈(interp D), from (iff.elim_left (IntersMember x)) l,
 show x∈(interp C), from and.elim_left l2
+
+
+example (A B : Concept) : A ⊓ B ⊑ A ⊔ B :=  sorry 
+
+
 
 example (C D E : Concept) : (Set.spec (λp: Prop, p = C⊑D ∨ p = D⊑E)) ⊧ C⊑E :=
 assume h: forall (p: Prop), (p∈(Set.spec (λp: Prop, p = C⊑D ∨ p = D⊑E)) → p),

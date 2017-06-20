@@ -1,13 +1,13 @@
 #+Title: Formalizing ALC in Lean Prover
 
-
 * Team
 
 - Alexandre Rademaker
-- Guilherme Passos
+- Chistiano Braga
+- Fabricio Chalub
+- Edward Hermann
 
 * Links
 
 - [[http://leanprover.github.io][Lean Prover]]
 - [[http://dl.kr.org][DL]]
-

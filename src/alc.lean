@@ -1,7 +1,7 @@
 -- import logic.identities logic.axioms.classical data.list
-import init.logic init.data.set
-open bool list
 
+import data.set
+open set
 
 namespace ALC
 
@@ -11,49 +11,57 @@ inductive Role : Type
   | Atomic : AtomicRole → Role
 
 inductive Concept : Type 
-  | TopConcept : Concept
+  | TopConcept    : Concept
   | BottomConcept : Concept
-  | Atomic :  AtomicConcept → Concept
-  | Negation : Concept → Concept
-  | Intersection : Concept → Concept → Concept
-  | Union : Concept → Concept → Concept
-  | Ex : Role → Concept → Concept
-  | Al : Role → Concept → Concept
+  | Atomic        : AtomicConcept → Concept
+  | Negation      : Concept → Concept
+  | Intersection  : Concept → Concept → Concept
+  | Union         : Concept → Concept → Concept
+  | Some          : Role → Concept → Concept
+  | Every         : Role → Concept → Concept
 
--- open Concept Role
+open Concept Role
 
-notation      `⊤` := Concept.TopConcept    -- \top
-notation      `⊥` := Concept.BottomConcept -- \bot
-prefix        `¬` := Concept.Negation      -- \neg
-infix     `⊓` :51 := Concept.Intersection  -- \sqcap
-infix     `⊔` :51 := Concept.Union         -- \sqcup
-notation `E` R . C := Concept.Ex R C
-notation `A` R . C := Concept.Al R C 
+-- notation        `⊤` := Concept.TopConcept    -- \top
+-- notation        `⊥` := Concept.BottomConcept -- \bot
+-- prefix          `¬` := Concept.Negation      -- \neg
+-- infix       `⊓` :51 := Concept.Intersection  -- \sqcap
+-- infix       `⊔` :51 := Concept.Union         -- \sqcup
+-- notation `Some` R . C := Concept.Ex R C
+-- notation `Only` R . C := Concept.Al R C 
 
 
 -- interpretation structure δ is the Universe
-structure Interp := 
-mk :: (δ : Type)   
+structure Interpretation := 
+mk :: (δ : Type) 
+      (U : set δ)  
       (atom_C : AtomicConcept → set δ)
       (atom_R : AtomicRole → set (δ × δ))
 
 
--- Role interpretation
-definition r_interp {I : Interp} : Role → set (Interp.δ I × Interp.δ I)  
-  | r_interp (Role.Atomic R) := Interp.atom_R I R
+-- role interpretation
+definition r_interp {I : Interpretation} : Role → set (I.δ × I.δ)  
+  | (Role.Atomic R) := I.atom_R R
+
+-- concept interpretation
+definition interp {I : Interpretation} : Concept → set I.δ 
+ | TopConcept           := I.U
+ | BottomConcept        := ∅ 
+ | (Atomic C)           := I.atom_C C
+ | (Negation C)         := compl (interp C)
+ | (Intersection C1 C2) := (interp C1) ∩ (interp C2)
+ | (Union C1 C2)        := (interp C1) ∪ (interp C2)
+ | (Some R C)           := { a: I.δ | ∃ b : I.δ, 
+                            (a, b) ∈ (r_interp R) ∧ b ∈ (interp C) }
+ | interp (Every R C)   := { a: I.δ | ∀ b : I.δ,
+                            (a, b) ∈ (r_interp R) → b ∈ (interp C) }
 
 
-definition interp {I: Interp} : Concept → Set -- Concept Interpretation
-  | interp ⊤ := U
-  | interp ⊥ := ∅
-  | interp (Atomic C) := !Interp.atom_C C
-  | interp ¬C := ∁(interp C)
-  | interp (C1⊓C2) := (interp C1)∩(interp C2)
-  | interp (C1⊔C2) := (interp C1)∪(interp C2)
-  | interp (∃;R. C) := Set.spec (λa:Interp.δ I, exists b :
-                                   Interp.δ I, (a, b)∈(!r_interp R) ∧ b∈(interp C) )
-  | interp (ValueRestr R C) := Set.spec (λa:Interp.δ I, forall b :
-                                   Interp.δ I, ((a, b)∈(!r_interp R)) → b∈(interp C))
+/- TODO:
+1. verificar erro acima
+2. um exemplo! Criar termos para um exemplo
+-/
+
 
 definition satisfiable (C : Concept) : Prop :=
   exists I : Interp, @interp I C ≠ ∅
@@ -72,7 +80,7 @@ definition TBOX_subsumption (D : @Set Prop) (α : Prop) : Prop :=
 definition models_proof (Ω: @Set Prop) (α: Prop) (h: (∀p: Prop, (p∈ Ω → p)) → α) : Ω⊧α
            := h
 
-example (C D : Concept) : C⊓D ⊑ C :=
+example (C D : Concept) : C ⊓ D ⊑ C :=
 take (I : Interp),
 take x : Interp.δ I,
 assume h : x ∈ interp (C⊓D),
@@ -85,7 +93,7 @@ example (A B : Concept) : A ⊓ B ⊑ A ⊔ B :=  sorry
 
 
 
-example (C D E : Concept) : (Set.spec (λp: Prop, p = C⊑D ∨ p = D⊑E)) ⊧ C⊑E :=
+example (C D E : Concept) : (Set.spec (λp: Prop, p = C ⊑ D ∨ p = D ⊑ E)) ⊧ C ⊑ E :=
 assume h: forall (p: Prop), (p∈(Set.spec (λp: Prop, p = C⊑D ∨ p = D⊑E)) → p),
 have l1: C⊑D = C⊑D, from rfl,
 have l2: C⊑D = C⊑D ∨ C⊑D = D⊑E, from or.intro_left (C⊑D = D⊑E) l1,

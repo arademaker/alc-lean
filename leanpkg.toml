@@ -1,0 +1,8 @@
+[package]
+name = "alc-lean"
+version = "0.1"
+lean_version = "leanprover-community/lean:3.26.0"
+path = "src"
+
+[dependencies]
+mathlib = {git = "https://github.com/leanprover-community/mathlib", rev = "8a23aa3bbc95ff3b9d5e3be00bf99823b3921f42"}

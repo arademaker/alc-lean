@@ -1,3 +1,3 @@
-*~
-.DS_Store
-*.clean
+*.olean
+/_target
+/leanpkg.path

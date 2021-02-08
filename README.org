@@ -3,11 +3,11 @@
 * Team
 
 - Alexandre Rademaker
-- Chistiano Braga
-- Fabricio Chalub
-- Edward Hermann
+- João Bregunci
 
 * Links
 
-- [[http://leanprover.github.io][Lean Prover]]
-- [[http://dl.kr.org][DL]]
+- [[http://leanprover.github.io]]
+- [[http://dl.kr.org]]
+- http://arademaker.github.io/bibliography/phdthesis-4.html
+

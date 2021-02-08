@@ -34,7 +34,6 @@ open Concept Role
 -- interpretation structure δ is the Universe
 structure Interpretation := 
 mk :: (δ : Type) 
-      (U : set δ)  
       (atom_C : AtomicConcept → set δ)
       (atom_R : AtomicRole → set (δ × δ))
 
@@ -45,7 +44,7 @@ definition r_interp {I : Interpretation} : Role → set (I.δ × I.δ)
 
 -- concept interpretation
 definition interp {I : Interpretation} : Concept → set I.δ 
- | TopConcept           := I.U
+ | TopConcept           := { x : I.δ | x ∈ (set x)}
  | BottomConcept        := ∅ 
  | (Atomic C)           := I.atom_C C
  | (Negation C)         := compl (interp C)
@@ -58,7 +57,7 @@ definition interp {I : Interpretation} : Concept → set I.δ
 
 
 /- TODO:
-1. verificar erro acima
+1. verificar erro acima (e.g. https://www.youtube.com/watch?v=qlJrCtYiEkI&t=800s)
 2. um exemplo! Criar termos para um exemplo
 -/
 

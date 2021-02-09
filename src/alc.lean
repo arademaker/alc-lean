@@ -77,12 +77,16 @@ def ic : ac → set ℕ
  | woman := ({1,3} : set ℕ)     
 
 def ir : ar → set (ℕ × ℕ)
- | hasChild := ({(1,2),(2,4)} : set (ℕ × ℕ))
+ | hasChild := ({(1,2),(4,3)} : set (ℕ × ℕ))
 
 def i := Interpretation.mk ℕ ic ir
 
 
 #check Concept.Atomic man 
+
+
+-- ∀ hasChild.man (the concept of all things such that all its fillers
+-- for the role 'hasChild' are of type 'man')
 
 #reduce @interp ac ar i (Every (Role.Atomic hasChild) (Concept.Atomic man))
 

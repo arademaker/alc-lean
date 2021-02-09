@@ -1,23 +1,21 @@
-import data.set data.finset
+import data.set 
 open set
 
 
 namespace ALC
 
-constants AtomicConcept AtomicRole : Type
-
-inductive Role : Type
+inductive Role (AtomicRole : Type) : Type
   | Atomic : AtomicRole → Role
 
-inductive Concept : Type 
+inductive Concept (AtomicConcept AtomicRole : Type) : Type 
   | TopConcept    : Concept
   | BottomConcept : Concept
   | Atomic        : AtomicConcept → Concept
   | Negation      : Concept → Concept
   | Intersection  : Concept → Concept → Concept
   | Union         : Concept → Concept → Concept
-  | Some          : Role → Concept → Concept
-  | Every         : Role → Concept → Concept
+  | Some          : Role AtomicRole → Concept → Concept
+  | Every         : Role AtomicRole → Concept → Concept
 
 open Concept Role
 
@@ -29,19 +27,22 @@ open Concept Role
 -- notation `Some` R . C := Concept.Ex R C
 -- notation `Only` R . C := Concept.Al R C 
 
-
 -- interpretation structure 
-structure Interpretation := 
+structure Interpretation (AtomicConcept AtomicRole : Type) := 
 mk :: (δ : Type) 
       (atom_C : AtomicConcept → set δ)
       (atom_R : AtomicRole → set (δ × δ))
 
+variables {AtomicConcept AtomicRole : Type}
+
 -- role interpretation
-definition r_interp {I : Interpretation} : Role → set (I.δ × I.δ)  
+definition r_interp {I : Interpretation AtomicConcept AtomicRole} : 
+ Role AtomicRole → set (I.δ × I.δ)  
   | (Role.Atomic R) := I.atom_R R
 
 -- concept interpretation
-definition interp {I : Interpretation} : Concept → set I.δ 
+definition interp {I : Interpretation AtomicConcept AtomicRole} : 
+  Concept AtomicConcept AtomicRole → set I.δ 
  | TopConcept           := univ
  | BottomConcept        := ∅ 
  | (Atomic C)           := I.atom_C C
@@ -49,30 +50,43 @@ definition interp {I : Interpretation} : Concept → set I.δ
  | (Intersection C1 C2) := (interp C1) ∩ (interp C2)
  | (Union C1 C2)        := (interp C1) ∪ (interp C2)
  | (Some R C)           := { a: I.δ | ∃ b : I.δ, 
-                            (a, b) ∈ (@r_interp I R) ∧ b ∈ (interp C) }
+                            (a, b) ∈ (@r_interp _ _ I R) ∧ b ∈ (interp C) }
  | (Every R C)          := { a: I.δ | ∀ b : I.δ,
-                            (a, b) ∈ (@r_interp I R) → b ∈ (interp C) }
+                            (a, b) ∈ (@r_interp _ _ I R) → b ∈ (interp C) }
 
 end ALC
 
 
 namespace test
+
 open ALC
+open ALC.Concept
 
-inductive AtomicConcept : Type
- | man : AtomicConcept
- | woman : AtomicConcept
+inductive ac : Type
+ | man : ac
+ | woman : ac
 
-def iconcept : AtomicConcept → set ℕ  
- | man   := ({2,4} : finset ℕ)
- | woman := ({1,3} : finset ℕ)
+inductive ar : Type
+ | hasChild : ar
 
-def irole : AtomicRole → set ℕ × ℕ
- | hasChild := ({(1,2),(2,4)} : finset ℕ × ℕ)
+open ac 
+open ar
 
-def i := Interpretation ℕ iconcept irole
+def ic : ac → set ℕ  
+ | man   := ({2,4} : set ℕ)
+ | woman := ({1,3} : set ℕ)     
 
-#check i
+def ir : ar → set (ℕ × ℕ)
+ | hasChild := ({(1,2),(2,4)} : set (ℕ × ℕ))
+
+def i := Interpretation.mk ℕ ic ir
+
+
+#check Concept.Atomic man 
+
+#reduce @interp ac ar i (Every (Role.Atomic hasChild) (Concept.Atomic man))
+
+#reduce interp (Every (Role.Atomic hasChild) (Concept.Atomic man))
 
 end test
 

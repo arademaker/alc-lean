@@ -94,8 +94,8 @@ def i := Interpretation.mk ℕ ic ir
 
 end test
 
-/- TODO:
-1. verificar erro acima (e.g. https://www.youtube.com/watch?v=qlJrCtYiEkI&t=800s)
-2. um exemplo! Criar termos para um exemplo
+/- References:
+
+- DL Prime: https://arxiv.org/abs/1201.4089v3
 -/
 

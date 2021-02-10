@@ -1,6 +1,19 @@
-
 import data.set 
 open set
+
+/-!
+
+# Goal
+
+We want to proof that the SC defined in the thesis is sound and
+complete. In this file, ACL syntax and semantics are defined.
+
+# References
+
+- DL Prime: https://arxiv.org/abs/1201.4089v3
+- http://arademaker.github.io/bibliography/phdthesis-4.html
+
+-/
 
 namespace ALC
 
@@ -56,6 +69,7 @@ definition interp (I : Interpretation AtomicConcept AtomicRole) : Concept Atomic
 end ALC
 
 
+
 namespace test
 
 open ALC
@@ -69,60 +83,84 @@ inductive ac : Type
 inductive ar : Type
  | hasChild : ar
 
-@[reducible]
 def ic : ac → set ℕ  
  | ac.man   := ({2,4} : set ℕ)
  | ac.woman := ({1,3} : set ℕ)     
 
-@[reducible]
 def ir : ar → set (ℕ × ℕ)
  | ar.hasChild := ({(1,2),(4,3)} : set (ℕ × ℕ))
 
-@[reducible]
 def i := Interpretation.mk ℕ ic ir
+
 
 #check @Concept.Atomic _ ar ac.man
 
-#reduce interp i (Concept.Atomic ac.man)
 
--- ∀ hasChild.man (the concept of all things such that all its fillers
--- for the role 'hasChild' are of type 'man')
+-- Berlow, the concept is not reduced to {2,4} but to a equivalent term.
+
+#reduce interp i (Concept.Atomic ac.man)
 
 #reduce interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man))
 
 
+-- instead of 'compute' concepts, let us proof things about the interpretation
+
 example : 
- interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({1} : set ℕ) :=
+ interp i (Some (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({1} : set ℕ) :=
 begin
+ dsimp [interp,r_interp,i],
+ rw [ic,ir],
  ext n,  
  apply iff.intro,
  { intro h1, 
-   dsimp [interp,r_interp,i] at h1, 
-   -- have h2 := h1 2,
-   -- norm_num, dsimp at *,
-   rw [ic,ir] at h1, 
-   dsimp at *, norm_num, 
-   have h2 := h1 2,
-    },
-
- { intros h1 n2,
-   dsimp [interp,r_interp,i],
-   rw [ic,ir],
+   simp at *, 
+   apply (exists.elim h1),
+   simp, intros a ha hb,
+   finish,
+ },
+ { intros h1,
    norm_num at h1,
-   intro h3,
-   rw h1 at h3,  
-   simp at *, left, 
-   cases h3 with ha hb, exact ha, exfalso,   
-   have hb1 := hb.1,
-   finish, -- what?
- }
+   rw h1,
+   apply exists.intro 2,
+   finish,
+ } 
+end
+
+example : 
+ interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({1,2,3} : set ℕ) := sorry
+
+
+-- more general properties of 'interp' should also be provable:
+
+example (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
+  interp i (Intersection c (Negation c)) = ∅ := sorry
+
+
+example (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
+  interp i (Union c (Negation c)) = univ := sorry
+
+
+
+-- detailed proofs for the steps closed with 'finish' above.
+
+example (h : 1 = 4) : false := 
+begin
+ -- if succ 0 = succ 3 then 0 = 3 because succ is injective
+ have h1 := (nat.succ_injective h),
+ apply nat.succ_ne_zero _ h1.symm, 
+end
+
+
+example (n a : ℕ) (ha : n = 1 ∧ a = 2 ∨ n = 4 ∧ a = 3)
+  (hb : a = 2 ∨ a = 4) : n = 1 := 
+begin
+ by_contradiction,
+ cases hb with hb1 hb2,
+ cases ha with ha1 ha2,
+ exact h ha1.1, 
+ have hx := and.intro ha2.2 hb1,
+ sorry,  
 end
 
 end test
 
-
-/- References:
-
-DL Prime: https://arxiv.org/abs/1201.4089v3
-
--/

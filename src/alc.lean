@@ -96,15 +96,14 @@ example :
 begin
  ext n,  
  apply iff.intro,
- {
- intro h1, 
- dsimp [interp,r_interp,i] at h1, 
- -- have h2 := h1 2,
- -- norm_num, dsimp at *,
- rw [ic,ir] at h1, 
- simp at *,
- have h2 := h1 2,
- simp at h2, sorry },
+ { intro h1, 
+   dsimp [interp,r_interp,i] at h1, 
+   -- have h2 := h1 2,
+   -- norm_num, dsimp at *,
+   rw [ic,ir] at h1, 
+   dsimp at *, norm_num, 
+   have h2 := h1 2,
+   sorry, },
 
  { intros h1 n2,
    dsimp [interp,r_interp,i],

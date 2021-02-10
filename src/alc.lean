@@ -103,7 +103,7 @@ begin
    rw [ic,ir] at h1, 
    dsimp at *, norm_num, 
    have h2 := h1 2,
-   sorry, },
+    },
 
  { intros h1 n2,
    dsimp [interp,r_interp,i],

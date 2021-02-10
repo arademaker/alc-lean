@@ -4,28 +4,18 @@ open set
 
 namespace ALC
 
-structure AtomicRole :=
- (id : string)
-
-structure AtomicConcept := 
- (id : string)
-
-#check { AtomicRole . id := "hasChild"}
-
-#check ({ id := "hasChild" } : AtomicRole)
-
-inductive Role : Type
+inductive Role (AtomicRole : Type) : Type
   | Atomic : AtomicRole → Role
 
-inductive Concept : Type 
+inductive Concept (AtomicConcept AtomicRole : Type) : Type 
   | TopConcept    : Concept
   | BottomConcept : Concept
   | Atomic        : AtomicConcept → Concept
   | Negation      : Concept → Concept
   | Intersection  : Concept → Concept → Concept
   | Union         : Concept → Concept → Concept
-  | Some          : Role → Concept → Concept
-  | Every         : Role → Concept → Concept
+  | Some          : (Role AtomicRole) → Concept → Concept
+  | Every         : (Role AtomicRole) → Concept → Concept
 
 open Concept Role
 
@@ -38,19 +28,20 @@ open Concept Role
 -- notation `Only` R . C := Concept.Al R C 
 
 -- interpretation structure 
-structure Interpretation := 
+structure Interpretation (AtomicConcept AtomicRole : Type) := 
 mk :: (δ : Type) 
       (atom_C : AtomicConcept → set δ)
       (atom_R : AtomicRole → set (δ × δ))
 
+
 variables {AtomicConcept AtomicRole : Type}
 
 -- role interpretation
-definition r_interp (I : Interpretation) : Role → set (I.δ × I.δ)  
+definition r_interp (I : Interpretation AtomicConcept AtomicRole) : Role AtomicRole → set (I.δ × I.δ)  
   | (Role.Atomic R) := I.atom_R R
 
 -- concept interpretation
-definition interp (I : Interpretation) : Concept → set I.δ 
+definition interp (I : Interpretation AtomicConcept AtomicRole) : Concept AtomicConcept AtomicRole → set I.δ 
  | TopConcept           := univ
  | BottomConcept        := ∅ 
  | (Atomic C)           := I.atom_C C
@@ -71,42 +62,62 @@ open ALC
 open ALC.Concept
 
 
-@[reducible]
-def ic : AtomicConcept → set ℕ  
- | { id := "man" }   := ({2,4} : set ℕ)
- | { id := "woman" } := ({1,3} : set ℕ)     
- | _ := ∅ 
+inductive ac : Type
+ | man : ac
+ | woman : ac
+
+inductive ar : Type
+ | hasChild : ar
 
 @[reducible]
-def ir : AtomicRole → set (ℕ × ℕ)
- | { id := "hasChild" } := ({(1,2),(4,3)} : set (ℕ × ℕ))
- | _ := ∅ 
+def ic : ac → set ℕ  
+ | ac.man   := ({2,4} : set ℕ)
+ | ac.woman := ({1,3} : set ℕ)     
+
+@[reducible]
+def ir : ar → set (ℕ × ℕ)
+ | ar.hasChild := ({(1,2),(4,3)} : set (ℕ × ℕ))
 
 @[reducible]
 def i := Interpretation.mk ℕ ic ir
 
-#check Concept.Atomic { id := "man" }
+#check @Concept.Atomic _ ar ac.man
 
-#reduce interp i (Concept.Atomic { id := "man"})
+#reduce interp i (Concept.Atomic ac.man)
 
 -- ∀ hasChild.man (the concept of all things such that all its fillers
 -- for the role 'hasChild' are of type 'man')
 
-
-#reduce interp i (Every (Role.Atomic { id := "hasChild"}) (Concept.Atomic { id := "man"}))
+#reduce interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man))
 
 
 example : 
- interp i (Every (Role.Atomic {id := "hasChild"}) (Concept.Atomic {id := "man"})) = ({1} : set ℕ) :=
+ interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({1} : set ℕ) :=
 begin
  ext n,  
  apply iff.intro,
+ {
  intro h1, 
  dsimp [interp,r_interp,i] at h1, 
- have h2 := h1 1,
- 
-end
+ -- have h2 := h1 2,
+ -- norm_num, dsimp at *,
+ rw [ic,ir] at h1, 
+ simp at *,
+ have h2 := h1 2,
+ simp at h2, sorry },
 
+ { intros h1 n2,
+   dsimp [interp,r_interp,i],
+   rw [ic,ir],
+   norm_num at h1,
+   intro h3,
+   rw h1 at h3,  
+   simp at *, left, 
+   cases h3 with ha hb, exact ha, exfalso,   
+   have hb1 := hb.1,
+   finish, -- what?
+ }
+end
 
 end test
 
@@ -116,4 +127,3 @@ end test
 DL Prime: https://arxiv.org/abs/1201.4089v3
 
 -/
-

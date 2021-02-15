@@ -208,9 +208,26 @@ begin
   exact set.union_compl_self (interp i c),
 end
 
+-- Concrete case for Concept ac ar, should be the same proof
+example (a b : Type) (C : Concept ac ar) : satisfiable (Union (Negation C) C) :=
+begin
+  unfold satisfiable,
+  unfold interp,
+  have i := Interpretation.mk ℕ ic ir,
+  use i,
+  rw ne.def,
+  intro h,
+  rw union_comm at h,
+  rw set.union_compl_self (interp i C) at h,
+  rw eq_comm at h,
+  revert h,
+  -- rw set.empty_ne_univ not works???
+end
+
 example (a b : Type) (C : Concept a b) : satisfiable (Union (Negation C) C) :=
 begin
   unfold satisfiable,
+  unfold interp,
   
 end
 

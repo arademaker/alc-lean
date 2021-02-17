@@ -66,8 +66,17 @@ definition interp (I : Interpretation AtomicConcept AtomicRole) : Concept Atomic
  | (Every R C)          := { a: I.δ | ∀ b : I.δ,
                             (a, b) ∈ (r_interp I R) → b ∈ (interp C) }
 
-end ALC
+definition satisfiable (C : Concept AtomicConcept AtomicRole) : Prop :=
+  ∃ I : Interpretation AtomicConcept AtomicRole, interp I C ≠ ∅
 
+definition subsumption (C D: Concept AtomicConcept AtomicRole) : Prop :=
+  ∀ I : Interpretation AtomicConcept AtomicRole, interp I C ⊆ interp I D
+
+definition equivalence (C D: Concept AtomicConcept AtomicRole) : Prop := 
+  subsumption C D ∧ subsumption D C
+
+
+end ALC
 
 
 namespace test
@@ -95,15 +104,17 @@ def ir : ar → set (ℕ × ℕ)
 @[reducible]
 def i := Interpretation.mk ℕ ic ir
 
+#check (Concept.Atomic ac.man)
+
 
 #check @Concept.Atomic _ ar ac.man
 
 
 -- Berlow, the concept is not reduced to {2,4} but to a equivalent term.
 
-#reduce interp i (Concept.Atomic ac.man)
+#reduce interp i (Concept.Atomic ac.woman)
 
-#reduce interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man))
+#reduce interp i (Some (Role.Atomic ar.hasChild) (Concept.Atomic ac.man))
 
 
 -- instead of 'compute' concepts, let us proof things about the interpretation
@@ -144,6 +155,21 @@ begin
     cases h rfl },
 end
 
+-- if i, ic and ir are not 'reducible'
+example :
+  interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
+begin
+  dsimp [i, interp],
+  ext n,
+  simp [r_interp, ir],
+  split,
+  { rintro H rfl,
+    have := H 3, revert this,
+    norm_num },
+  { rintro h _ (⟨rfl, rfl⟩|⟨rfl, rfl⟩), {norm_num},
+    cases h rfl },
+end
+
 -- a detailed proof
 example :
   interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
@@ -162,34 +188,48 @@ begin
   },
 end
 
--- if i, ic and ir are not 'reducible'
-example :
-  interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
+-- more general properties of 'interp' should also be provable:
+
+#check false.elim
+
+
+example (a b : Type) (i : Interpretation a b) (c : Concept a b) : interp i (Intersection c (Negation c)) = ∅ := 
 begin
-  dsimp [i, interp],
-  ext n,
-  simp [r_interp, ir],
-  split,
-  { rintro H rfl,
-    have := H 3, revert this,
-    norm_num },
-  { rintro h _ (⟨rfl, rfl⟩|⟨rfl, rfl⟩), {norm_num},
-    cases h rfl },
+  dsimp [interp],
+  --rw inter_comm,
+  finish,
+  --exact set.compl_inter_self (interp i c),
 end
 
 
-example : 
- interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({1,2,3} : set ℕ)  
-  := sorry
+example (a b : Type) (i : Interpretation a b) (c : Concept a b) : interp i (Union c (Negation c)) = univ := 
+begin
+  dsimp [interp],
+  exact set.union_compl_self (interp i c),
+end
 
--- more general properties of 'interp' should also be provable:
+-- Concrete case for Concept ac ar, should be the same proof
+example (a b : Type) (C : Concept ac ar) : satisfiable (Union (Negation C) C) :=
+begin
+  unfold satisfiable,
+  unfold interp,
+  have i := Interpretation.mk ℕ ic ir,
+  use i,
+  rw ne.def,
+  intro h,
+  rw union_comm at h,
+  rw set.union_compl_self (interp i C) at h,
+  rw eq_comm at h,
+  revert h,
+  -- rw set.empty_ne_univ not works???
+end
 
-example (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
-  interp i (Intersection c (Negation c)) = ∅ := sorry
-
-
-example (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
-  interp i (Union c (Negation c)) = univ := sorry
+example (a b : Type) (C : Concept a b) : satisfiable (Union (Negation C) C) :=
+begin
+  unfold satisfiable,
+  unfold interp,
+  
+end
 
 
 -- detailed proofs for the steps closed with 'finish' above.
@@ -210,8 +250,9 @@ begin
  cases ha with ha1 ha2,
  exact h ha1.1, 
  have hx := and.intro ha2.2 hb1,
- sorry,  
+ sorry, 
 end
 
 end test
 
+#check 4

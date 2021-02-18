@@ -43,9 +43,9 @@ open Concept Role
 -- interpretation structure 
 structure Interpretation (AtomicConcept AtomicRole : Type) := 
 mk :: (δ : Type) 
-      (atom_C : AtomicConcept → set δ)
-      (atom_R : AtomicRole → set (δ × δ))
-
+      [nonempty : nonempty δ]
+      (atom_C   : AtomicConcept → set δ)
+      (atom_R   : AtomicRole → set (δ × δ))
 
 variables {AtomicConcept AtomicRole : Type}
 
@@ -104,13 +104,7 @@ def ir : ar → set (ℕ × ℕ)
 @[reducible]
 def i := Interpretation.mk ℕ ic ir
 
-#check (Concept.Atomic ac.man)
-
-
-#check @Concept.Atomic _ ar ac.man
-
-
--- Berlow, the concept is not reduced to {2,4} but to a equivalent term.
+-- below, the concept is not reduced to {2,4} but to a equivalent λ-term.
 
 #reduce interp i (Concept.Atomic ac.woman)
 
@@ -155,7 +149,7 @@ begin
     cases h rfl },
 end
 
--- if i, ic and ir are not 'reducible'
+-- if i, ic and ir were not 'reducible'
 example :
   interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
 begin
@@ -188,10 +182,8 @@ begin
   },
 end
 
+
 -- more general properties of 'interp' should also be provable:
-
-#check false.elim
-
 
 example (a b : Type) (i : Interpretation a b) (c : Concept a b) : interp i (Intersection c (Negation c)) = ∅ := 
 begin
@@ -208,29 +200,29 @@ begin
   exact set.union_compl_self (interp i c),
 end
 
--- Concrete case for Concept ac ar, should be the same proof
-example (a b : Type) (C : Concept ac ar) : satisfiable (Union (Negation C) C) :=
-begin
-  unfold satisfiable,
-  unfold interp,
-  have i := Interpretation.mk ℕ ic ir,
-  use i,
-  rw ne.def,
-  intro h,
-  rw union_comm at h,
-  rw set.union_compl_self (interp i C) at h,
-  rw eq_comm at h,
-  revert h,
-  -- rw set.empty_ne_univ not works???
-end
+#check set.empty_ne_univ.symm
+#check (propext set.univ_eq_empty_iff)
+#check univ
+#check not_not
+#check (propext not_not)
+#check empty_ne_univ.symm
 
 example (a b : Type) (C : Concept a b) : satisfiable (Union (Negation C) C) :=
 begin
-  unfold satisfiable,
-  unfold interp,
-  
-end
+  dsimp [satisfiable, interp],
+  have i : Interpretation a b := { Interpretation . 
+    δ := ℕ, 
+    nonempty :=  ⟨0⟩, 
+    atom_C := (λ x : a, ∅), 
+    atom_R := (λ x : b, ∅) },
+  existsi i,
+  rw set.union_comm,
+  rw set.union_compl_self,
 
+  -- simp at *, exact i.nonempty,
+  have h1 := @empty_ne_univ i.δ i.nonempty,
+  exact h1.symm,
+end
 
 -- detailed proofs for the steps closed with 'finish' above.
 
@@ -254,5 +246,3 @@ begin
 end
 
 end test
-
-#check 4

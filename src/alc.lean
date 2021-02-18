@@ -200,12 +200,7 @@ begin
   exact set.union_compl_self (interp i c),
 end
 
-#check set.empty_ne_univ.symm
-#check (propext set.univ_eq_empty_iff)
-#check univ
-#check not_not
-#check (propext not_not)
-#check empty_ne_univ.symm
+-- see https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/non.20empty.20set.20in.20a.20structure
 
 example (a b : Type) (C : Concept a b) : satisfiable (Union (Negation C) C) :=
 begin
@@ -232,6 +227,10 @@ begin
   rw not_not,
   exact i.nonempty,
 end
+
+example (a b : Type) (C : Concept a b) : ¬ satisfiable (Intersection (Negation C) C) := sorry
+
+
 
 -- detailed proofs for the steps closed with 'finish' above.
 

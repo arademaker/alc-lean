@@ -200,6 +200,13 @@ begin
   exact set.union_compl_self (interp i c),
 end
 
+#check set.empty_ne_univ.symm
+#check (propext set.univ_eq_empty_iff)
+#check univ
+#check not_not
+#check (propext not_not)
+#check empty_ne_univ.symm
+
 example (a b : Type) (C : Concept a b) : satisfiable (Union (Negation C) C) :=
 begin
   dsimp [satisfiable, interp],
@@ -225,10 +232,6 @@ begin
   rw not_not,
   exact i.nonempty,
 end
-
-example (a b : Type) (c : Concept a b) : ¬ satisfiable (Intersection c (Negation c)) := sorry
-
-
 
 -- detailed proofs for the steps closed with 'finish' above.
 

@@ -228,7 +228,21 @@ begin
   exact i.nonempty,
 end
 
-example (a b : Type) (C : Concept a b) : ¬ satisfiable (Intersection (Negation C) C) := sorry
+example (a b : Type) (C : Concept a b) : ¬ satisfiable (Intersection (Negation C) C) := 
+begin
+  dsimp [satisfiable,interp],
+  -- don't even need to instatiate
+  -- goal accomplished with only norm_num
+  let i : Interpretation a b := { Interpretation . 
+    δ := ℕ, 
+    nonempty :=  ⟨0⟩, 
+    atom_C := (λ x : a, ∅), 
+    atom_R := (λ x : b, ∅) },
+  intro hk0,
+  cases hk0 with hk1 hk2,
+  simp at hk2,
+  exact hk2,
+end
 
 
 
@@ -250,7 +264,8 @@ begin
  cases ha with ha1 ha2,
  exact h ha1.1, 
  have hx := and.intro ha2.2 hb1,
- sorry, 
+ finish,
+ finish,
 end
 
 end test

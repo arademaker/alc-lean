@@ -218,10 +218,21 @@ begin
   existsi i,
   rw set.union_comm,
   rw set.union_compl_self,
-
+  
+  -- option 1
+  -- intro h,
+  -- have h2 := empty_ne_univ h.symm,
+  
+  -- option 2
   -- simp at *, exact i.nonempty,
-  have h1 := @empty_ne_univ i.δ i.nonempty,
-  exact h1.symm,
+  
+  -- option 3
+  -- have h1 := @empty_ne_univ i.δ i.nonempty,
+  -- exact h1.symm,
+  
+  rw set.univ_eq_empty_iff,
+  rw not_not,
+  exact i.nonempty,
 end
 
 -- detailed proofs for the steps closed with 'finish' above.

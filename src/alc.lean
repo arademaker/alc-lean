@@ -210,7 +210,7 @@ end
 example (a b : Type) (C : Concept a b) : satisfiable (Union (Negation C) C) :=
 begin
   dsimp [satisfiable, interp],
-  have i : Interpretation a b := { Interpretation . 
+  let i : Interpretation a b := { Interpretation . 
     δ := ℕ, 
     nonempty :=  ⟨0⟩, 
     atom_C := (λ x : a, ∅), 
@@ -220,15 +220,13 @@ begin
   rw set.union_compl_self,
   
   -- option 1
-  -- intro h,
-  -- have h2 := empty_ne_univ h.symm,
+  -- exact empty_ne_univ.symm,
   
   -- option 2
-  -- simp at *, exact i.nonempty,
+  -- simp at *, 
   
   -- option 3
-  -- have h1 := @empty_ne_univ i.δ i.nonempty,
-  -- exact h1.symm,
+  -- apply empty_ne_univ.symm, exact i.nonempty,
   
   rw set.univ_eq_empty_iff,
   rw not_not,

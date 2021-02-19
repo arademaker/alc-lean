@@ -75,6 +75,27 @@ definition subsumption (C D: Concept AtomicConcept AtomicRole) : Prop :=
 definition equivalence (C D: Concept AtomicConcept AtomicRole) : Prop := 
   subsumption C D ∧ subsumption D C
 
+lemma inter_subsum_left (C D: Concept AtomicConcept AtomicRole) : subsumption (Intersection C D) C  :=
+begin
+  dsimp [subsumption, interp],
+  intro h,
+  exact inter_subset_left (interp h C) (interp h D),
+end
+
+lemma inter_subsum_right (C D: Concept AtomicConcept AtomicRole) : subsumption (Intersection C D) D  :=
+begin
+  dsimp [subsumption, interp],
+  intro h,
+  exact inter_subset_right (interp h C) (interp h D),
+end
+
+lemma subsum_trans (C D E: Concept AtomicConcept AtomicRole) (cd : (subsumption C D)) (de : subsumption D E) : subsumption C E :=
+begin
+  dsimp [subsumption, interp] at *,
+  intro h,
+  -- how to work with forall in hypothesis
+  sorry,
+end 
 
 end ALC
 

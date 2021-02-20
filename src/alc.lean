@@ -37,8 +37,8 @@ open Concept Role
 -- prefix          `¬` := Concept.Negation      -- \neg
 -- infix       `⊓` :51 := Concept.Intersection  -- \sqcap
 -- infix       `⊔` :51 := Concept.Union         -- \sqcup
--- notation `Some` R . C := Concept.Ex R C
--- notation `Only` R . C := Concept.Al R C 
+-- notation `Some` R . C := Concept.Ex R C -- (it would be nice to use `∃ R. C`)
+-- notation `Only` R . C := Concept.Al R C -- (it would be nice to use `∀ R. C`)
 -- infix `⊑` : 50 := subsumption -- \sqsubseteq
 -- infix `≡` : 50 := equivalence -- \==
 

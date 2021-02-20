@@ -93,10 +93,13 @@ lemma subsum_trans (C D E: Concept AtomicConcept AtomicRole) (cd : (subsumption 
 begin
   dsimp [subsumption, interp] at *,
   intro h,
-  -- how to work with forall in hypothesis
-  -- hello
-  sorry,
+  have h1 : interp h C ⊆ interp h D,
+  show (interp h C ⊆ interp h D), from cd h,
+  have h2 : interp h D ⊆ interp h E,
+  show (interp h D ⊆ interp h E), from de h,
+  exact (subset.trans h1 h2),
 end 
+
 
 end ALC
 
@@ -291,3 +294,12 @@ begin
 end
 
 end test
+
+variables (α : Type*) (p q : α → Prop)
+
+example : (∀ x : α, p x ∧ q x) → ∀ y : α, p y  :=
+begin
+assume h : ∀ x : α, p x ∧ q x,
+assume y : α,
+show p y, from (h y).left
+end

@@ -1,18 +1,6 @@
 
 
 
-definition satisfiable (C : Concept) : Prop :=
-  exists I : Interp, @interp I C ≠ ∅
-
-definition subsumption (C D: Concept) : Prop :=
-  forall I : Interp, @interp I C ⊂ @interp I D
-  infix `⊑` : 50 := subsumption -- \sqsubseteq
-
-definition equivalence (C D: Concept) : Prop := C⊑D∧D⊑C
-  infix `≡` : 50 := equivalence -- \==
-
-
-
 definition TBOX_subsumption (D : @Set Prop) (α : Prop) : Prop :=
   (forall p: Prop, (p∈D → p)) → α
   infix `⊧` : 1 := TBOX_subsumption --\models
@@ -30,7 +18,6 @@ show x∈(interp C), from and.elim_left l2
 
 
 example (A B : Concept) : A ⊓ B ⊑ A ⊔ B :=  sorry 
-
 
 
 example (C D E : Concept) : (Set.spec (λp: Prop, p = C ⊑ D ∨ p = D ⊑ E)) ⊧ C ⊑ E :=

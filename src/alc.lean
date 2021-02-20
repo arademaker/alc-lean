@@ -39,6 +39,9 @@ open Concept Role
 -- infix       `⊔` :51 := Concept.Union         -- \sqcup
 -- notation `Some` R . C := Concept.Ex R C
 -- notation `Only` R . C := Concept.Al R C 
+-- infix `⊑` : 50 := subsumption -- \sqsubseteq
+-- infix `≡` : 50 := equivalence -- \==
+
 
 -- interpretation structure 
 structure Interpretation (AtomicConcept AtomicRole : Type) := 
@@ -66,165 +69,11 @@ definition interp (I : Interpretation AtomicConcept AtomicRole) : Concept Atomic
  | (Every R C)          := { a: I.δ | ∀ b : I.δ,
                             (a, b) ∈ (r_interp I R) → b ∈ (interp C) }
 
-definition satisfiable (C : Concept AtomicConcept AtomicRole) : Prop :=
-  ∃ I : Interpretation AtomicConcept AtomicRole, interp I C ≠ ∅
-
-definition subsumption (C D: Concept AtomicConcept AtomicRole) : Prop :=
-  ∀ I : Interpretation AtomicConcept AtomicRole, interp I C ⊆ interp I D
-
-definition equivalence (C D: Concept AtomicConcept AtomicRole) : Prop := 
-  subsumption C D ∧ subsumption D C
-
-lemma inter_subsum_left (C D: Concept AtomicConcept AtomicRole) : subsumption (Intersection C D) C  :=
-begin
-  dsimp [subsumption, interp],
-  intro h,
-  exact inter_subset_left (interp h C) (interp h D),
-end
-
-lemma inter_subsum_right (C D: Concept AtomicConcept AtomicRole) : subsumption (Intersection C D) D  :=
-begin
-  dsimp [subsumption, interp],
-  intro h,
-  exact inter_subset_right (interp h C) (interp h D),
-end
-
-lemma subsum_trans (C D E: Concept AtomicConcept AtomicRole) (cd : (subsumption C D)) (de : subsumption D E) : subsumption C E :=
-begin
-  dsimp [subsumption, interp] at *,
-  intro h,
-  have h1 : interp h C ⊆ interp h D,
-  show (interp h C ⊆ interp h D), from cd h,
-  have h2 : interp h D ⊆ interp h E,
-  show (interp h D ⊆ interp h E), from de h,
-  exact (subset.trans h1 h2),
-end 
-
-lemma subsum_union_left (C D : Concept AtomicConcept AtomicRole) : subsumption C (Union C D) :=
-begin
-  dsimp [subsumption, interp],
-  intro h,
-  exact subset_union_left (interp h C) (interp h D),
-end
-
-lemma subsum_union_right (C D : Concept AtomicConcept AtomicRole) : subsumption D (Union C D) :=
-begin
-  dsimp [subsumption, interp],
-  intro h,
-  exact subset_union_right (interp h C) (interp h D),
-end
-
-
-end ALC
-
-
-namespace test
-
-open ALC
-open ALC.Concept
-
-
-inductive ac : Type
- | man : ac
- | woman : ac
-
-inductive ar : Type
- | hasChild : ar
-
-@[reducible]
-def ic : ac → set ℕ  
- | ac.man   := ({2,4} : set ℕ)
- | ac.woman := ({1,3} : set ℕ)     
-
-@[reducible]
-def ir : ar → set (ℕ × ℕ)
- | ar.hasChild := ({(1,2),(4,3)} : set (ℕ × ℕ))
-
-@[reducible]
-def i := Interpretation.mk ℕ ic ir
-
--- below, the concept is not reduced to {2,4} but to a equivalent λ-term.
-
-#reduce interp i (Concept.Atomic ac.woman)
-
-#reduce interp i (Some (Role.Atomic ar.hasChild) (Concept.Atomic ac.man))
-
-
--- instead of 'compute' concepts, let us proof things about the interpretation
-
-example : 
- interp i (Some (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({1} : set ℕ) :=
-begin
- dsimp [interp,r_interp,i],
- rw [ic,ir],
- ext n,  
- apply iff.intro,
- { intro h1, 
-   simp at *, 
-   apply (exists.elim h1),
-   simp, intros a ha hb,
-   finish,
- },
- { intros h1,
-   norm_num at h1,
-   rw h1,
-   apply exists.intro 2,
-   finish,
- } 
-end
-
--- Mario's proof
-example :
-  interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
-begin
-  ext n,
-  simp [interp, r_interp, ir, ic],
-  split,
-  { rintro h rfl,
-    have := h 3, revert this,
-    norm_num, 
-  },
-  { rintro h _ (⟨rfl, rfl⟩|⟨rfl, rfl⟩), {norm_num},
-    cases h rfl },
-end
-
--- if i, ic and ir were not 'reducible'
-example :
-  interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
-begin
-  dsimp [i, interp],
-  ext n,
-  simp [r_interp, ir],
-  split,
-  { rintro H rfl,
-    have := H 3, revert this,
-    norm_num },
-  { rintro h _ (⟨rfl, rfl⟩|⟨rfl, rfl⟩), {norm_num},
-    cases h rfl },
-end
-
--- a detailed proof
-example :
-  interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
-begin
-  ext n,
-  simp [interp, r_interp, ir, ic],
-  split,
-  { rintro h rfl,
-    have := h 3, revert this,
-    norm_num, 
-  },
-  { intros h1 a h2,
-    cases h2 with h2a h2b,
-    exact or.inl h2a.2,
-    exfalso, exact h1 h2b.left,
-  },
-end
-
 
 -- more general properties of 'interp' should also be provable:
 
-example (a b : Type) (i : Interpretation a b) (c : Concept a b) : interp i (Intersection c (Negation c)) = ∅ := 
+lemma interp_inter_neg_empty (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
+ interp i (Intersection c (Negation c)) = ∅ := 
 begin
   dsimp [interp],
   --rw inter_comm,
@@ -233,15 +82,27 @@ begin
 end
 
 
-example (a b : Type) (i : Interpretation a b) (c : Concept a b) : interp i (Union c (Negation c)) = univ := 
+lemma interp_union_neq_univ (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
+ interp i (Union c (Negation c)) = univ := 
 begin
   dsimp [interp],
   exact set.union_compl_self (interp i c),
 end
 
+
+def satisfiable (C : Concept AtomicConcept AtomicRole) : Prop :=
+  ∃ I : Interpretation AtomicConcept AtomicRole, interp I C ≠ ∅
+
+def subsumption (C D: Concept AtomicConcept AtomicRole) : Prop :=
+  ∀ I : Interpretation AtomicConcept AtomicRole, interp I C ⊆ interp I D
+
+def equivalence (C D: Concept AtomicConcept AtomicRole) : Prop := 
+  subsumption C D ∧ subsumption D C
+
+
 -- see https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/non.20empty.20set.20in.20a.20structure
 
-example (a b : Type) (C : Concept a b) : satisfiable (Union (Negation C) C) :=
+lemma sat_union_neq (a b : Type) (C : Concept a b) : satisfiable (Union (Negation C) C) :=
 begin
   dsimp [satisfiable, interp],
   let i : Interpretation a b := { Interpretation . 
@@ -267,7 +128,8 @@ begin
   exact i.nonempty,
 end
 
-example (a b : Type) (C : Concept a b) : ¬ satisfiable (Intersection (Negation C) C) := 
+
+lemma not_sat_inter_neg (a b : Type) (C : Concept a b) : ¬ satisfiable (Intersection (Negation C) C) := 
 begin
   dsimp [satisfiable,interp],
   -- don't even need to instatiate
@@ -284,36 +146,51 @@ begin
 end
 
 
-
--- detailed proofs for the steps closed with 'finish' above.
-
-example (h : 1 = 4) : false := 
+lemma inter_subsum_left (C D: Concept AtomicConcept AtomicRole) : subsumption (Intersection C D) C  :=
 begin
- -- if succ 0 = succ 3 then 0 = 3 because succ is injective
- have h1 := (nat.succ_injective h),
- apply nat.succ_ne_zero _ h1.symm, 
+  dsimp [subsumption, interp],
+  intro h,
+  exact inter_subset_left (interp h C) (interp h D),
 end
 
 
-example (n a : ℕ) (ha : n = 1 ∧ a = 2 ∨ n = 4 ∧ a = 3)
-  (hb : a = 2 ∨ a = 4) : n = 1 := 
+lemma inter_subsum_right (C D: Concept AtomicConcept AtomicRole) : subsumption (Intersection C D) D  :=
 begin
- by_contradiction,
- cases hb with hb1 hb2,
- cases ha with ha1 ha2,
- exact h ha1.1, 
- have hx := and.intro ha2.2 hb1,
- finish,
- finish,
+  dsimp [subsumption, interp],
+  intro h,
+  exact inter_subset_right (interp h C) (interp h D),
 end
 
-end test
 
-variables (α : Type*) (p q : α → Prop)
-
-example : (∀ x : α, p x ∧ q x) → ∀ y : α, p y  :=
+lemma subsum_union_left (C D : Concept AtomicConcept AtomicRole) : subsumption C (Union C D) :=
 begin
-assume h : ∀ x : α, p x ∧ q x,
-assume y : α,
-show p y, from (h y).left
+  dsimp [subsumption, interp],
+  intro h,
+  exact subset_union_left (interp h C) (interp h D),
 end
+
+
+lemma subsum_union_right (C D : Concept AtomicConcept AtomicRole) : subsumption D (Union C D) :=
+begin
+  dsimp [subsumption, interp],
+  intro h,
+  exact subset_union_right (interp h C) (interp h D),
+end
+
+
+lemma subsum_trans (C D E: Concept AtomicConcept AtomicRole) (cd : (subsumption C D)) (de : subsumption D E) : 
+  subsumption C E :=
+begin
+  dsimp [subsumption, interp] at *,
+  intro h,
+  have h1 : interp h C ⊆ interp h D, from cd h,
+  have h2 : interp h D ⊆ interp h E, from de h,
+  exact (subset.trans h1 h2),
+end 
+
+/- 
+1. all concepts C is equivalent to itself
+2. all concepts C \sqsubseteq (subsubmise) ifself
+-/
+
+end ALC

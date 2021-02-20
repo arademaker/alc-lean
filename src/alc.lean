@@ -100,6 +100,20 @@ begin
   exact (subset.trans h1 h2),
 end 
 
+lemma subsum_union_left (C D : Concept AtomicConcept AtomicRole) : subsumption C (Union C D) :=
+begin
+  dsimp [subsumption, interp],
+  intro h,
+  exact subset_union_left (interp h C) (interp h D),
+end
+
+lemma subsum_union_right (C D : Concept AtomicConcept AtomicRole) : subsumption D (Union C D) :=
+begin
+  dsimp [subsumption, interp],
+  intro h,
+  exact subset_union_right (interp h C) (interp h D),
+end
+
 
 end ALC
 

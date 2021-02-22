@@ -32,15 +32,13 @@ inductive Concept (AtomicConcept AtomicRole : Type) : Type
 
 open Concept Role
 
--- notation        `⊤` := Concept.TopConcept    -- \top
--- notation        `⊥` := Concept.BottomConcept -- \bot
--- prefix          `¬` := Concept.Negation      -- \neg
--- infix       `⊓` :51 := Concept.Intersection  -- \sqcap
--- infix       `⊔` :51 := Concept.Union         -- \sqcup
--- notation `Some` R . C := Concept.Ex R C -- (it would be nice to use `∃ R. C`)
--- notation `Only` R . C := Concept.Al R C -- (it would be nice to use `∀ R. C`)
--- infix `⊑` : 50 := subsumption -- \sqsubseteq
--- infix `≡` : 50 := equivalence -- \==
+notation        `⊤ₐ` := Concept.TopConcept    -- \top
+notation        `⊥ₐ` := Concept.BottomConcept -- \bot
+prefix          `¬ₐ` : 51 := Concept.Negation       -- \neg
+infix           `⊓ₐ` : 55 := Concept.Intersection   -- ◾\sqcap
+infix           `⊔ₐ`  : 55 := Concept.Union         -- \sqcup
+notation `∃ₐ` R `.ₐ` C := Concept.Some R C -- (it would be nice to use `∃ R. C`)
+notation `∀ₐ` R `.ₐ` C := Concept.Every R C -- (it would be nice to use `∀ R. C`)
 
 
 -- interpretation structure 
@@ -73,7 +71,7 @@ definition interp (I : Interpretation AtomicConcept AtomicRole) : Concept Atomic
 -- more general properties of 'interp' should also be provable:
 
 lemma interp_inter_neg_empty (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
- interp i (Intersection c (Negation c)) = ∅ := 
+ interp i (c ⊓ₐ(¬ₐ c)) = ∅ := 
 begin
   dsimp [interp],
   --rw inter_comm,
@@ -99,6 +97,8 @@ def subsumption (C D: Concept AtomicConcept AtomicRole) : Prop :=
 def equivalence (C D: Concept AtomicConcept AtomicRole) : Prop := 
   subsumption C D ∧ subsumption D C
 
+infix `⊑ₐ` : 50 := subsumption -- \sqsubseteq
+infix `≡ₐ` : 50 := equivalence -- \==
 
 -- see https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/non.20empty.20set.20in.20a.20structure
 
@@ -188,6 +188,19 @@ begin
   exact (subset.trans h1 h2),
 end 
 
+lemma subsum_refl (C : Concept AtomicConcept AtomicRole) : C ⊑ₐ C :=
+begin
+  dsimp [subsumption, interp],
+  intro h,
+  exact subset.refl (interp h C), 
+end
+
+lemma equiv_refl (C : Concept AtomicConcept AtomicRole) : C ≡ₐ C :=
+begin
+  dsimp [equivalence, interp],
+  split,
+  exact subsum_refl C, exact subsum_refl C,
+end
 /- 
 1. all concepts C is equivalent to itself
 2. all concepts C \sqsubseteq (subsubmise) ifself

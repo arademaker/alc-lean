@@ -32,11 +32,11 @@ inductive Concept (AtomicConcept AtomicRole : Type) : Type
 
 open Concept Role
 
-notation        `⊤ₐ` := Concept.TopConcept    -- \top
-notation        `⊥ₐ` := Concept.BottomConcept -- \bot
-prefix          `¬ₐ` : 51 := Concept.Negation       -- \neg
-infix           `⊓ₐ` : 55 := Concept.Intersection   -- ◾\sqcap
-infix           `⊔ₐ`  : 55 := Concept.Union         -- \sqcup
+notation        `⊤` := Concept.TopConcept    -- \top
+notation        `⊥` := Concept.BottomConcept -- \bot
+local prefix     `¬` : 51 := Concept.Negation       -- \neg
+local infix      `⊓` : 55 := Concept.Intersection   -- ◾\sqcap
+local infix      `⊔` : 55 := Concept.Union         -- \sqcup
 notation `∃ₐ` R `.ₐ` C := Concept.Some R C -- (it would be nice to use `∃ R. C`)
 notation `∀ₐ` R `.ₐ` C := Concept.Every R C -- (it would be nice to use `∀ R. C`)
 
@@ -56,22 +56,22 @@ definition r_interp (I : Interpretation AtomicConcept AtomicRole) : Role AtomicR
 
 -- concept interpretation
 definition interp (I : Interpretation AtomicConcept AtomicRole) : Concept AtomicConcept AtomicRole → set I.δ 
- | TopConcept           := univ
- | BottomConcept        := ∅ 
- | (Atomic C)           := I.atom_C C
- | (Negation C)         := compl (interp C)
- | (Intersection C1 C2) := (interp C1) ∩ (interp C2)
- | (Union C1 C2)        := (interp C1) ∪ (interp C2)
- | (Some R C)           := { a: I.δ | ∃ b : I.δ, 
-                            (a, b) ∈ (r_interp I R) ∧ b ∈ (interp C) }
- | (Every R C)          := { a: I.δ | ∀ b : I.δ,
-                            (a, b) ∈ (r_interp I R) → b ∈ (interp C) }
+ | ⊤            := univ
+ | ⊥            := ∅ 
+ | (Atomic C)   := I.atom_C C
+ | (¬ C)        := compl (interp C)
+ | (C1 ⊓ C2)    := (interp C1) ∩ (interp C2)
+ | (C1 ⊔ C2)    := (interp C1) ∪ (interp C2)
+ | (Some R C)   := { a: I.δ | ∃ b : I.δ, 
+                     (a, b) ∈ (r_interp I R) ∧ b ∈ (interp C) }
+ | (Every R C)  := { a: I.δ | ∀ b : I.δ,
+                     (a, b) ∈ (r_interp I R) → b ∈ (interp C) }
 
 
 -- more general properties of 'interp' should also be provable:
 
 lemma interp_inter_neg_empty (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
- interp i (c ⊓ₐ(¬ₐ c)) = ∅ := 
+ interp i (c ⊓ (¬ c)) = ∅ := 
 begin
   dsimp [interp],
   --rw inter_comm,
@@ -81,7 +81,7 @@ end
 
 
 lemma interp_union_neq_univ (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
- interp i (Union c (Negation c)) = univ := 
+ interp i (c ⊔ ¬ c) = univ := 
 begin
   dsimp [interp],
   exact set.union_compl_self (interp i c),
@@ -97,12 +97,12 @@ def subsumption (C D: Concept AtomicConcept AtomicRole) : Prop :=
 def equivalence (C D: Concept AtomicConcept AtomicRole) : Prop := 
   subsumption C D ∧ subsumption D C
 
-infix `⊑ₐ` : 50 := subsumption -- \sqsubseteq
-infix `≡ₐ` : 50 := equivalence -- \==
+local infix `⊑` : 50 := subsumption -- \sqsubseteq
+local infix `≡` : 50 := equivalence -- \==
 
 -- see https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/non.20empty.20set.20in.20a.20structure
 
-lemma sat_union_neq (a b : Type) (C : Concept a b) : satisfiable (Union (Negation C) C) :=
+lemma sat_union_neq (a b : Type) (C : Concept a b) : satisfiable (¬ C ⊔ C) :=
 begin
   dsimp [satisfiable, interp],
   let i : Interpretation a b := { Interpretation . 
@@ -129,7 +129,7 @@ begin
 end
 
 
-lemma not_sat_inter_neg (a b : Type) (C : Concept a b) : ¬ satisfiable (Intersection (Negation C) C) := 
+lemma not_sat_inter_neg (a b : Type) (C : Concept a b) : ¬ satisfiable (¬ C ⊓ C) := 
 begin
   dsimp [satisfiable,interp],
   -- don't even need to instatiate
@@ -146,7 +146,7 @@ begin
 end
 
 
-lemma inter_subsum_left (C D: Concept AtomicConcept AtomicRole) : subsumption (Intersection C D) C  :=
+lemma inter_subsum_left (C D: Concept AtomicConcept AtomicRole) : (C ⊓ D) ⊑ C  :=
 begin
   dsimp [subsumption, interp],
   intro h,
@@ -154,7 +154,7 @@ begin
 end
 
 
-lemma inter_subsum_right (C D: Concept AtomicConcept AtomicRole) : subsumption (Intersection C D) D  :=
+lemma inter_subsum_right (C D: Concept AtomicConcept AtomicRole) : (C ⊓ D) ⊑ D  :=
 begin
   dsimp [subsumption, interp],
   intro h,
@@ -162,7 +162,7 @@ begin
 end
 
 
-lemma subsum_union_left (C D : Concept AtomicConcept AtomicRole) : subsumption C (Union C D) :=
+lemma subsum_union_left (C D : Concept AtomicConcept AtomicRole) : C ⊑ (C ⊔ D) :=
 begin
   dsimp [subsumption, interp],
   intro h,
@@ -170,7 +170,7 @@ begin
 end
 
 
-lemma subsum_union_right (C D : Concept AtomicConcept AtomicRole) : subsumption D (Union C D) :=
+lemma subsum_union_right (C D : Concept AtomicConcept AtomicRole) : D ⊑ (C ⊔ D) :=
 begin
   dsimp [subsumption, interp],
   intro h,
@@ -178,8 +178,8 @@ begin
 end
 
 
-lemma subsum_trans (C D E: Concept AtomicConcept AtomicRole) (cd : (subsumption C D)) (de : subsumption D E) : 
-  subsumption C E :=
+lemma subsum_trans (C D E: Concept AtomicConcept AtomicRole) (cd : C ⊑ D) (de : D ⊑ E) : 
+   C ⊑ E :=
 begin
   dsimp [subsumption, interp] at *,
   intro h,
@@ -188,14 +188,14 @@ begin
   exact (subset.trans h1 h2),
 end 
 
-lemma subsum_refl (C : Concept AtomicConcept AtomicRole) : C ⊑ₐ C :=
+lemma subsum_refl (C : Concept AtomicConcept AtomicRole) : C ⊑ C :=
 begin
   dsimp [subsumption, interp],
   intro h,
   exact subset.refl (interp h C), 
 end
 
-lemma equiv_refl (C : Concept AtomicConcept AtomicRole) : C ≡ₐ C :=
+lemma equiv_refl (C : Concept AtomicConcept AtomicRole) : C ≡ C :=
 begin
   dsimp [equivalence, interp],
   split,

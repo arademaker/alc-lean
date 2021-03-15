@@ -269,6 +269,11 @@ begin
   unfold interp_stmt,
 end
 
+lemma equiv_stat_refl {AC AR : Type} (I : Interpretation AC AR) (C : Concept AC AR) : interp_stmt I (C ≡ₛ C) :=
+begin
+  unfold interp_stmt,
+end
+
 lemma subsum_stat_trans {AC AR : Type} (I : Interpretation AC AR) (C D E: Concept AC AR) (cd : (C ⊑ₛ D)) (de : D ⊑ₛ E) : 
    C ⊑ₛ E :=
 begin

@@ -126,8 +126,8 @@ inductive Statement {AC AR : Type} : Type
 -- Created another operator with a different syntax as the polymorphic instance would not be able
 -- to differentiate beetween the two. Both take Concept AC AR in two instances.
 
-local infix ` ⊑ₛ   ` : 50 := Statement.Subsumption -- \sqsubseteq
-local infix ` ≡ₛ   ` : 50 := Statement.Equivalence -- \==
+local infix ` ⊑ₛ  ` : 50 := Statement.Subsumption -- \sqsubseteq
+local infix ` ≡ₛ  ` : 50 := Statement.Equivalence -- \==
 
 
 definition interp_stmt {AC AR : Type} (I : Interpretation AC AR) : @Statement AC AR → Prop
@@ -157,7 +157,7 @@ end
 
 -- see https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/non.20empty.20set.20in.20a.20structure
 
-lemma sat_union_neq (a b : Type) (C : Concept a b) : satisfiable ((¬ₐ C) ⊔ C) :=
+lemma sat_union_neq {a b : Type} (C : Concept a b) : satisfiable ((¬ₐ C) ⊔ C) :=
 begin
   dsimp [satisfiable, interp],
   let i : Interpretation a b := { Interpretation . 
@@ -184,7 +184,7 @@ begin
 end
 
 
-lemma not_sat_inter_neg (a b : Type) (C : Concept a b) : ¬ satisfiable ((¬ₐ C) ⊓ C) := 
+lemma not_sat_inter_neg {a b : Type} (C : Concept a b) : ¬ satisfiable ((¬ₐ C) ⊓ C) := 
 begin
   dsimp [satisfiable,interp],
   -- don't even need to instatiate
@@ -239,7 +239,7 @@ begin
   exact subset.refl (interp h C), 
 end
 
-lemma subsum_trans (C D E: Concept AtomicConcept AtomicRole) (cd : C ⊑ D) (de : D ⊑ E) : 
+lemma subsum_trans {C D E: Concept AtomicConcept AtomicRole} (cd : C ⊑ D) (de : D ⊑ E) : 
    C ⊑ E :=
 begin
   dsimp [subsumption, interp] at *,
@@ -249,7 +249,7 @@ begin
   exact (subset.trans h1 h2),
 end 
 
-lemma subsum_antisymm (C D : Concept AtomicConcept AtomicRole) (cd : C ⊑  D) (dc : D ⊑  C) : C ≡ D :=
+lemma subsum_antisymm {C D : Concept AtomicConcept AtomicRole} (cd : C ⊑  D) (dc : D ⊑  C) : C ≡ D :=
 begin
   dsimp[subsumption,equivalence,interp] at *,
   split,
@@ -264,20 +264,33 @@ begin
   exact subsum_refl C, exact subsum_refl C,
 end
 
-lemma subsum_stat_refl {AC AR : Type} (I : Interpretation AC AR) (C : Concept AC AR) : interp_stmt I (C ⊑ₛ C) :=
-begin
-  unfold interp_stmt,
-end
+-- Statement lemmas
 
 lemma equiv_stat_refl {AC AR : Type} (I : Interpretation AC AR) (C : Concept AC AR) : interp_stmt I (C ≡ₛ C) :=
 begin
   unfold interp_stmt,
 end
 
-lemma subsum_stat_trans {AC AR : Type} (I : Interpretation AC AR) (C D E: Concept AC AR) (cd : (C ⊑ₛ D)) (de : D ⊑ₛ E) : 
-   C ⊑ₛ E :=
+lemma subsum_stat_refl {AC AR : Type} (I : Interpretation AC AR) (C : Concept AC AR) : interp_stmt I (C ⊑ₛ C) :=
 begin
-  
+  unfold interp_stmt,
+end
+
+lemma subsum_stat_trans {AC AR : Type} {I : Interpretation AC AR} {C D E: Concept AC AR} (cd : interp_stmt I (C ⊑ₛ D)) (de : interp_stmt I (D ⊑ₛ E)) : 
+   interp_stmt I (C ⊑ₛ E) :=
+begin
+  unfold interp_stmt at *,
+  exact subset.trans cd de,
 end 
+
+lemma subsum_stat_antisym {AC AR : Type} {I: Interpretation AC AR} {C D: Concept AC AR} (cd : interp_stmt I (C ⊑ₛ D)) (dc : interp_stmt I (D ⊑ₛ C)) :
+  interp_stmt I (C ≡ₛ D) :=
+begin
+  unfold interp_stmt at *,
+  rw subset.antisymm_iff,
+  exact ⟨cd,dc⟩,
+end
+
+
 
 end ALC

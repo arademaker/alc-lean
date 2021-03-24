@@ -11,3 +11,10 @@
 - [[http://dl.kr.org]]
 - http://arademaker.github.io/bibliography/phdthesis-4.html
 
+* References
+
+- https://arxiv.org/pdf/1910.01697.pdf
+- https://github.com/maxd13/logic-soundness
+- http://www.cs.us.es/~mjoseh/alc/ and https://core.ac.uk/download/pdf/158965276.pdf
+- https://github.com/leanprover/lean/blob/72a965986fa5aeae54062e98efb3140b2c4e79fd/tests/lean/run/soundness.lean
+

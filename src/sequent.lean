@@ -4,52 +4,47 @@ import data.multiset
 open ALC
 open ALC.Concept
 
-variables {α β : Type }
-
-inductive Label (AC AR : Type) : Type
-  | Empty : Label
-  | Negation : Label
-  | Forall : (Role AR) → Concept AC AR → Label
-  | Exist : (Role AR) → Concept AC AR → Label
+inductive Label (AR : Type) : Type
+  | Forall : (Role AR) → Label
+  | Exists : (Role AR)  → Label
 
 -- to use with lists, we need an instance for inhabited, that is
 -- to say that we have at leasts one element of the type
 
+/--
 instance Label_inhabited {AC AR : Type} : 
   inhabited (Label AC AR) := inhabited.mk Label.Empty
 
 instance Concept_inhabited {AC AR : Type} :
   inhabited (Concept AC AR) := inhabited.mk Concept.Top
 
-structure LConcept (AC AR: Type) :=
-mk :: (roles : list (Label AC AR))
-      (concept : Concept AC AR)
-
 instance LConcept_inhabited {AC AR : Type} :
   inhabited (LConcept AC AR) := inhabited.mk (LConcept.mk [Label.Empty] Concept.Top)
+--/
 
-#check (LConcept.mk [@Label.Negation α β] (@Concept.Bot α β )).roles.head
+structure LConcept (AC AR: Type) :=
+mk :: (roles : list (Label AR))
+      (concept : Concept AC AR)
 
-def sigma_line {AC AR : Type} : LConcept AC AR → Label AC AR →  LConcept AC AR
-  | a Label.Empty           := a
-  | a Label.Negation        := LConcept.mk (a.roles.tail) (Concept.Negation a.concept)
-  | a (Label.Forall RO CO)  := LConcept.mk (a.roles.tail) (Concept.Every RO a.concept)
-  | a (Label.Exist RO CO)   := LConcept.mk (a.roles.tail) (Concept.Some RO a.concept)
+open LConcept
+open Label
 
+@[reducible]
+def sigma' {AC AR : Type} : LConcept AC AR → Concept AC AR
+  | { LConcept . roles := [] , concept := c} := c
+  | { LConcept . roles := (Forall r :: ls) , concept := c} := (Every r (sigma' (LConcept.mk ls c)))
+  | { LConcept . roles := (Exists r :: ls) , concept := c} := (Some r (sigma' (LConcept.mk ls c)))
 
-def sigma_apply {AC AR : Type} (lc : @LConcept AC AR) :=
-  sigma_line lc (lc.roles.head)
+inductive c : Type
+ | man : c
+ | woman : c
 
-def sigma_line2 {AC AR : Type} : list (Label AC AR) → LConcept AC AR → LConcept AC AR
-  | [] a := a
-  | (_::ls) a := sigma_line2 (ls) (sigma_apply a)
+inductive r : Type
+ | hasChild : r
 
-def sigma_exhaust {AC AR : Type} (lb : LConcept AC AR) :=
-  LConcept.concept (sigma_line2 (LConcept.roles lb) lb)
+-- TODO : o que tá rolando??
+#reduce sigma' (LConcept.mk [@Label.Forall r (Role.Atomic r.hasChild)] (@Concept.Bot c r))
 
-#reduce LConcept.concept (sigma_apply (LConcept.mk [@Label.Negation α β] (@Concept.Bot α β )))
-
-#reduce sigma_exhaust (LConcept.mk [@Label.Negation α β] (@Concept.Bot α β ))
 
 #check multiset.fold (Concept.Intersection) Concept.Top {Concept.Top}
 
@@ -66,13 +61,23 @@ def inter_LConcepts {AC AR : Type} (as : list (LConcept AC AR)) :=
 def union_LConcepts {AC AR : Type} (as : list (LConcept AC AR)) :=
   list.foldl (Concept.Union) (sigma_exhaust (list.head as)) (list.map sigma_exhaust (list.tail as))
 
-def subsequent {AC AR : Type} (as : list (LConcept AC AR)) (bs : list (LConcept AC AR)) :=
+def sequent {AC AR : Type} (as : list (LConcept AC AR)) (bs : list (LConcept AC AR)) :=
   subsumption (inter_LConcepts as) (union_LConcepts bs)
 
 #reduce list.foldl (λ x y, Concept.Intersection x y) (Concept.Top) [Concept.Bot]
 
 
-#reduce 1 ∈ [1,2,3]
+#reduce 4 ∈ [1,2,3]
+
+#check 4 ∈ [1,2,3]
+
+lemma l1 : 2 ∈ [1,2,3] :=
+begin
+ simp,
+end
+
+#check l1
+
 
 lemma weak_l_srule {AC AR : Type} {as bs : list (LConcept AC AR)} 
   (a : LConcept AC AR) (h1 : list.mem a as) (h : subsequent as bs) : subsequent (a::as) bs :=
@@ -83,3 +88,22 @@ begin
   have hn : interp I (inter_LConcepts as) ⊆ interp I (union_LConcepts bs), from h I,
   
 end 
+
+
+
+/--
+
+pure logic! Sequent Calculus:
+
+Man |- Person     Person |- Casado
+---------------------------------- cut
+        Man |- Casado
+
+
+dependent types:
+
+h1 : Man |- Person
+h2 : Person |- Casado
+cut h1 h2 : Man |- Casado
+
+--/

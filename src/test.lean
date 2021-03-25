@@ -31,6 +31,20 @@ def i := Interpretation.mk ℕ ic ir
 
 #reduce interp i (Some (Role.Atomic ar.hasChild) (Concept.Atomic ac.man))
 
+-- ∀ hasChild ∃ hasChild man
+-- Ax hasChild Ex hasChild man
+#reduce Ax (Role.Atomic ar.hasChild) : (Ex (Role.Atomic ar.hasChild) : (Concept.Atomic ac.man))
+
+-- Ax hasChild Ex hasChild man equiv Ex hasChild Ax hasChild ¬ man
+
+#reduce interp i (Ex (Role.Atomic ar.hasChild) : ¬ₐ (Concept.Atomic ac.man))
+#reduce interp i ¬ₐ (Ax (Role.Atomic ar.hasChild) : (Concept.Atomic ac.man))
+
+
+-- list of labels [∀ hasChild,∃ hasChild]
+
+#reduce list.head [Label.Forall (Role.Atomic ar.hasChild),Label.Exist (Role.Atomic ar.hasChild)]
+
 
 -- instead of 'compute' concepts, let us proof things about the interpretation
 

@@ -106,7 +106,6 @@ begin
   exact set.union_compl_self (interp i c),
 end
 
-
 def satisfiable (C : Concept AtomicConcept AtomicRole) : Prop :=
   ∃ I : Interpretation AtomicConcept AtomicRole, interp I C ≠ ∅
 
@@ -126,6 +125,7 @@ inductive Statement {AC AR : Type} : Type
 
 -- Created another operator with a different syntax as the polymorphic instance would not be able
 -- to differentiate beetween the two. Both take Concept AC AR in two instances.
+
 
 local infix ` ⊑ₛ ` : 50 := Statement.Subsumption -- \sqsubseteq
 local infix ` ≡ₛ ` : 50 := Statement.Equivalence -- \==

@@ -303,6 +303,4 @@ begin
   exact ⟨cd,dc⟩,
 end
 
-
-
-end ALC2
+end ALC

@@ -23,11 +23,16 @@ definition VarConcept := nat
 @[reducible]
 definition VarRole := nat
 
+meta def print {α} [has_reflect α] (e : α) : tactic unit :=
+ tactic.pp (reflect e) >>= tactic.trace
+
+@[derive has_reflect]
 inductive Role : Type
   | Atomic  : VarRole → Role
   | Compose : Role → Role → Role
   | Inverse : Role → Role
 
+@[derive has_reflect]
 inductive Concept : Type 
   | Top           : Concept
   | Bot           : Concept

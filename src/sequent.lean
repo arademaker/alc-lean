@@ -4,6 +4,8 @@ import data.multiset
 open ALC
 open ALC.Concept
 
+
+@[derive has_reflect]
 inductive Label : Type
   | Forall : Role  → Label
   | Exists : Role  → Label
@@ -23,6 +25,7 @@ instance LConcept_inhabited {AC AR : Type} :
   inhabited (LConcept AC AR) := inhabited.mk (LConcept.mk [Label.Empty] Concept.Top)
 --/
 
+@[derive has_reflect]
 structure LConcept :=
 mk :: (roles : list Label)
       (concept : Concept)
@@ -39,6 +42,8 @@ def sigma' : LConcept -> Concept
  | ⟨ roles , concept ⟩ := sigma_aux roles concept
 
 #reduce sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
+
+#eval print $ sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
 
 
 /--

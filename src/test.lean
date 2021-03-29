@@ -14,42 +14,50 @@ inductive ar : Type
  | hasChild : ar
 
 @[reducible]
-def ic : ac → set ℕ  
- | ac.man   := ({2,4} : set ℕ)
- | ac.woman := ({1,3} : set ℕ)     
+def ic : VarConcept → set ℕ  
+ | 1   := ({2,4} : set ℕ)
+ | 2   := ({1,3} : set ℕ)     
 
 @[reducible]
-def ir : ar → set (ℕ × ℕ)
- | ar.hasChild := ({(1,2),(4,3)} : set (ℕ × ℕ))
+def ir : VarRole → set (ℕ × ℕ)
+ | _ := ({(1,2),(4,3)} : set (ℕ × ℕ))
+
 
 @[reducible]
 def i := Interpretation.mk ℕ ic ir
 
 -- below, the concept is not reduced to {2,4} but to a equivalent λ-term.
 
-#reduce interp i (Concept.Atomic ac.woman)
+#check C#1
 
-#reduce interp i (Some (Role.Atomic ar.hasChild) (Concept.Atomic ac.man))
+#check Concept.Atomic 1
+
+#reduce interp i (C#1)
+
+#reduce interp i (Some (R#1) (C#1))
 
 -- ∀ hasChild ∃ hasChild man
 -- Ax hasChild Ex hasChild man
-#reduce Ax (Role.Atomic ar.hasChild) : (Ex (Role.Atomic ar.hasChild) : (Concept.Atomic ac.man))
+#reduce Ax (R#2) : (Ex (R#1) : (C#1))
 
 -- Ax hasChild Ex hasChild man equiv Ex hasChild Ax hasChild ¬ man
 
-#reduce interp i (Ex (Role.Atomic ar.hasChild) : ¬ₐ (Concept.Atomic ac.man))
-#reduce interp i ¬ₐ (Ax (Role.Atomic ar.hasChild) : (Concept.Atomic ac.man))
+#reduce interp i (Ex (R#1) : ¬ₐ (C#1))
+#reduce interp i ¬ₐ (Ax (R#1) : (C#2))
 
 
 -- list of labels [∀ hasChild,∃ hasChild]
 
 #reduce list.head [Label.Forall (Role.Atomic ar.hasChild),Label.Exist (Role.Atomic ar.hasChild)]
 
+#check R#1
+
+#reduce ir 1
 
 -- instead of 'compute' concepts, let us proof things about the interpretation
 
 example : 
- interp i (Some (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({1} : set ℕ) :=
+ interp i (Some (R#1) (C#1)) = ({1} : set ℕ) :=
 begin
  dsimp [interp,r_interp,i],
  rw [ic,ir],
@@ -71,7 +79,7 @@ end
 
 -- Mario's proof
 example :
-  interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
+  interp i (Every (R#1) (C#1)) = ({4}ᶜ : set ℕ) :=
 begin
   ext n,
   simp [interp, r_interp, ir, ic],
@@ -86,22 +94,22 @@ end
 
 -- if i, ic and ir were not 'reducible'
 example :
-  interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
+  interp i (Every (R#1) (C#1)) = ({4}ᶜ : set ℕ) :=
 begin
   dsimp [i, interp],
   ext n,
   simp [r_interp, ir],
   split,
   { rintro H rfl,
-    have := H 3, revert this,
+    have := H 3, revert this, rw ic at *,
     norm_num },
-  { rintro h _ (⟨rfl, rfl⟩|⟨rfl, rfl⟩), {norm_num},
+  { rintro h _ (⟨rfl, rfl⟩|⟨rfl, rfl⟩), rw ic at *, {norm_num},
     cases h rfl },
 end
 
 -- a detailed proof
 example :
-  interp i (Every (Role.Atomic ar.hasChild) (Concept.Atomic ac.man)) = ({4}ᶜ : set ℕ) :=
+  interp i (Every (R#1) (C#1)) = ({4}ᶜ : set ℕ) :=
 begin
   ext n,
   simp [interp, r_interp, ir, ic],

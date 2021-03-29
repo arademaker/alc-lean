@@ -17,36 +17,47 @@ complete. In this file, ACL syntax and semantics are defined.
 
 namespace ALC
 
-inductive Role (AtomicRole : Type) : Type
-  | Atomic  : AtomicRole → Role
+@[reducible]
+definition VarConcept := nat
+
+@[reducible]
+definition VarRole := nat
+
+inductive Role : Type
+  | Atomic  : VarRole → Role
   | Compose : Role → Role → Role
   | Inverse : Role → Role
 
-inductive Concept (AtomicConcept AtomicRole : Type) : Type 
+inductive Concept : Type 
   | Top           : Concept
   | Bot           : Concept
-  | Atomic        : AtomicConcept → Concept
+  | Atomic        : VarConcept → Concept
   | Negation      : Concept → Concept
   | Intersection  : Concept → Concept → Concept
   | Union         : Concept → Concept → Concept
-  | Some          : (Role AtomicRole) → Concept → Concept
-  | Every         : (Role AtomicRole) → Concept → Concept
+  | Some          : Role → Concept → Concept
+  | Every         : Role → Concept → Concept
+
+notation `R#`:max P:max := Role.Atomic P
+notation `C#`:max P:max := Concept.Atomic P
+
+#check C#1
 
 open Concept Role
 
 attribute [pattern] has_inf.inf has_sup.sup has_top.top has_bot.bot
 
-instance concept_has_top (AtomicConcept AtomicRole : Type) : 
- has_top (Concept AtomicConcept AtomicRole) := ⟨ Concept.Top ⟩ 
+instance concept_has_top: 
+ has_top Concept := ⟨ Concept.Top ⟩ 
 
-instance concept_has_bot (AtomicConcept AtomicRole : Type) : 
- has_bot (Concept AtomicConcept AtomicRole) := ⟨ Concept.Bot ⟩ 
+instance concept_has_bot : 
+ has_bot Concept := ⟨ Concept.Bot ⟩ 
 
-instance concept_has_inf (AtomicConcept AtomicRole : Type) : 
- has_inf (Concept AtomicConcept AtomicRole) := ⟨ Concept.Intersection ⟩
+instance concept_has_inf : 
+ has_inf Concept := ⟨ Concept.Intersection ⟩
 
-instance concept_has_sup (AtomicConcept AtomicRole : Type) : 
- has_sup (Concept AtomicConcept AtomicRole) := ⟨ Concept.Union ⟩
+instance concept_has_sup : 
+ has_sup Concept := ⟨ Concept.Union ⟩
 
 
 -- local infix     `⊓` : 55 := Concept.Intersection  -- \sqcap
@@ -58,24 +69,24 @@ notation `Ex` R `:` C := Concept.Some R C  -- (it would be nice to use `∃ R. C
 notation `Ax` R `:` C := Concept.Every R C -- (it would be nice to use `∀ R. C`)
 
 
-structure Interpretation (AtomicConcept AtomicRole : Type) := 
+structure Interpretation (VarConcept VarRole : Type) := 
 mk :: (δ : Type) 
       [nonempty : nonempty δ]
-      (atom_C   : AtomicConcept → set δ)
-      (atom_R   : AtomicRole → set (δ × δ))
+      (atom_C   : VarConcept → set δ)
+      (atom_R   : VarRole → set (δ × δ))
 
 variables {AtomicConcept AtomicRole : Type}
 
 
 -- role interpretation
-def r_interp (I : Interpretation AtomicConcept AtomicRole) : Role AtomicRole → set (I.δ × I.δ)  
+def r_interp (I : Interpretation VarConcept VarRole) : Role → set (I.δ × I.δ)  
   | (Role.Atomic R)    := I.atom_R R
   | (Role.Inverse R)   := { d | ∀ x: I.δ × I.δ, x ∈ (r_interp R) → d.1 = x.2 ∧ d.2 = x.1 }
   | (Role.Compose R S) := { d | ∀ x y : I.δ × I.δ, x ∈ (r_interp R) ∧ y ∈ (r_interp R) ∧ 
                                   x.2 = y.1 → d.1 =  x.1 ∧ d.2 = y.2 }
 
 -- concept interpretation
-def interp (I : Interpretation AtomicConcept AtomicRole) : Concept AtomicConcept AtomicRole → set I.δ 
+def interp (I : Interpretation VarConcept VarRole) : Concept → set I.δ 
  | ⊤            := univ
  | ⊥            := ∅ 
  | (Atomic C)   := I.atom_C C
@@ -90,7 +101,7 @@ def interp (I : Interpretation AtomicConcept AtomicRole) : Concept AtomicConcept
 
 -- more general properties of 'interp' should also be provable:
 
-lemma interp_inter_neg_empty (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
+lemma interp_inter_neg_empty (i : Interpretation VarConcept VarRole) (c : Concept) : 
  interp i (c ⊓ (¬ₐ c)) = ∅ := 
 begin
   dsimp [interp],
@@ -99,29 +110,29 @@ begin
   --exact set.compl_inter_self (interp i c),
 end
 
-lemma interp_union_neq_univ (a b : Type) (i : Interpretation a b) (c : Concept a b) : 
+lemma interp_union_neq_univ (a b : Type) (i : Interpretation VarConcept VarRole) (c : Concept) : 
  interp i (c ⊔ (¬ₐ c)) = univ := 
 begin
   dsimp [interp],
   exact set.union_compl_self (interp i c),
 end
 
-def satisfiable (C : Concept AtomicConcept AtomicRole) : Prop :=
-  ∃ I : Interpretation AtomicConcept AtomicRole, interp I C ≠ ∅
+def satisfiable (C : Concept) : Prop :=
+  ∃ I : Interpretation VarConcept VarRole, interp I C ≠ ∅
 
-def subsumption (C D: Concept AtomicConcept AtomicRole) : Prop :=
-  ∀ I : Interpretation AtomicConcept AtomicRole, interp I C ⊆ interp I D
+def subsumption (C D: Concept) : Prop :=
+  ∀ I : Interpretation VarConcept VarRole, interp I C ⊆ interp I D
 
-def equivalence (C D: Concept AtomicConcept AtomicRole) : Prop := 
+def equivalence (C D: Concept) : Prop := 
   subsumption C D ∧ subsumption D C
 
 
 local infix ` ⊑  ` : 50 := subsumption
 local infix ` ≡  ` : 50 := equivalence
 
-inductive Statement {AC AR : Type} : Type
-  | Subsumption : Concept AC AR → Concept AC AR → Statement
-  | Equivalence : Concept AC AR → Concept AC AR → Statement
+inductive Statement : Type
+  | Subsumption : Concept → Concept → Statement
+  | Equivalence : Concept → Concept → Statement
 
 -- Created another operator with a different syntax as the polymorphic instance would not be able
 -- to differentiate beetween the two. Both take Concept AC AR in two instances.
@@ -131,23 +142,23 @@ local infix ` ⊑ₛ ` : 50 := Statement.Subsumption -- \sqsubseteq
 local infix ` ≡ₛ ` : 50 := Statement.Equivalence -- \==
 
 
-definition interp_stmt {AC AR : Type} (I : Interpretation AC AR) : @Statement AC AR → Prop
+definition interp_stmt (I : Interpretation VarConcept VarRole) : Statement → Prop
   | (Statement.Subsumption C D) := interp I C ⊆ interp I D
   | (Statement.Equivalence C D) := interp I C = interp I D
 
 
-def sat_concept_tbox {AC AR : Type} (tbox : set (@Statement AC AR)) (a : @Statement AC AR) : Prop :=
-  ∃ I : Interpretation AC AR,
+def sat_concept_tbox (tbox : set Statement) (a : Statement) : Prop :=
+  ∃ I : Interpretation VarConcept VarRole,
     (∀ c ∈ tbox, (interp_stmt I c)) → (interp_stmt I a)
 
-example (ac ar : Type) (A B C : Concept ac ar) : sat_concept_tbox { A ⊑ₛ B , B ⊑ₛ C } (A ⊑ₛ C) := 
+example (A B C : Concept) : sat_concept_tbox { A ⊑ₛ B , B ⊑ₛ C } (A ⊑ₛ C) := 
 begin
  unfold sat_concept_tbox,
- let i : Interpretation ac ar := { Interpretation . 
+ let i : Interpretation VarConcept VarRole := { Interpretation . 
     δ := ℕ, 
     nonempty :=  ⟨0⟩, 
-    atom_C := (λ x : ac, ∅), 
-    atom_R := (λ x : ar, ∅) },
+    atom_C := (λ x : VarConcept, ∅), 
+    atom_R := (λ x : VarRole, ∅) },
  existsi i,
  intro h1,
  have ha := h1 (A ⊑ₛ B),simp at ha,
@@ -158,14 +169,14 @@ end
 
 -- see https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/non.20empty.20set.20in.20a.20structure
 
-lemma sat_union_neq {a b : Type} (C : Concept a b) : satisfiable ((¬ₐ C) ⊔ C) :=
+lemma sat_union_neq (C : Concept) : satisfiable ((¬ₐ C) ⊔ C) :=
 begin
   dsimp [satisfiable, interp],
-  let i : Interpretation a b := { Interpretation . 
+  let i : Interpretation VarConcept VarRole := { Interpretation . 
     δ := ℕ, 
     nonempty :=  ⟨0⟩, 
-    atom_C := (λ x : a, ∅), 
-    atom_R := (λ x : b, ∅) },
+    atom_C := (λ x : VarConcept, ∅), 
+    atom_R := (λ x : VarRole, ∅) },
   existsi i,
   rw set.union_comm,
   rw set.union_compl_self,
@@ -185,16 +196,16 @@ begin
 end
 
 
-lemma not_sat_inter_neg {a b : Type} (C : Concept a b) : ¬ satisfiable ((¬ₐ C) ⊓ C) := 
+lemma not_sat_inter_neg (C : Concept) : ¬ satisfiable ((¬ₐ C) ⊓ C) := 
 begin
   dsimp [satisfiable,interp],
   -- don't even need to instatiate
   -- goal accomplished with only norm_num
-  let i : Interpretation a b := { Interpretation . 
+  let i : Interpretation VarConcept VarRole := { Interpretation . 
     δ := ℕ, 
     nonempty :=  ⟨0⟩, 
-    atom_C := (λ x : a, ∅), 
-    atom_R := (λ x : b, ∅) },
+    atom_C := (λ x : VarConcept, ∅), 
+    atom_R := (λ x : VarRole, ∅) },
   intro hk0,
   cases hk0 with hk1 hk2,
   simp at hk2,
@@ -202,7 +213,7 @@ begin
 end
 
 
-lemma inter_subsum_left (C D: Concept AtomicConcept AtomicRole) : (C ⊓ D) ⊑ C  :=
+lemma inter_subsum_left (C D: Concept) : (C ⊓ D) ⊑ C  :=
 begin
   dsimp [subsumption, interp],
   intro h,
@@ -210,7 +221,7 @@ begin
 end
 
 
-lemma inter_subsum_right (C D: Concept AtomicConcept AtomicRole) : (C ⊓ D) ⊑ D  :=
+lemma inter_subsum_right (C D: Concept) : (C ⊓ D) ⊑ D  :=
 begin
   dsimp [subsumption, interp],
   intro h,
@@ -218,7 +229,7 @@ begin
 end
 
 
-lemma subsum_union_left (C D : Concept AtomicConcept AtomicRole) : C ⊑ (C ⊔ D) :=
+lemma subsum_union_left (C D : Concept) : C ⊑ (C ⊔ D) :=
 begin
   dsimp [subsumption, interp],
   intro h,
@@ -226,21 +237,21 @@ begin
 end
 
 
-lemma subsum_union_right (C D : Concept AtomicConcept AtomicRole) : D ⊑ (C ⊔ D) :=
+lemma subsum_union_right (C D : Concept) : D ⊑ (C ⊔ D) :=
 begin
   dsimp [subsumption, interp],
   intro h,
   exact subset_union_right (interp h C) (interp h D),
 end
 
-lemma subsum_refl (C : Concept AtomicConcept AtomicRole) : C ⊑ C :=
+lemma subsum_refl (C : Concept) : C ⊑ C :=
 begin
   dsimp [subsumption, interp],
   intro h,
   exact subset.refl (interp h C), 
 end
 
-lemma subsum_trans {C D E: Concept AtomicConcept AtomicRole} (cd : C ⊑ D) (de : D ⊑ E) : 
+lemma subsum_trans {C D E: Concept} (cd : C ⊑ D) (de : D ⊑ E) : 
    C ⊑ E :=
 begin
   dsimp [subsumption, interp] at *,
@@ -250,7 +261,7 @@ begin
   exact (subset.trans h1 h2),
 end 
 
-lemma subsum_antisymm {C D : Concept AtomicConcept AtomicRole} (cd : C ⊑  D) (dc : D ⊑  C) : C ≡ D :=
+lemma subsum_antisymm {C D : Concept} (cd : C ⊑  D) (dc : D ⊑  C) : C ≡ D :=
 begin
   dsimp[subsumption,equivalence,interp] at *,
   split,
@@ -258,7 +269,7 @@ begin
   intro h, exact dc h,
 end 
 
-lemma equiv_refl (C : Concept AtomicConcept AtomicRole) : C ≡ C :=
+lemma equiv_refl (C : Concept) : C ≡ C :=
 begin
   dsimp [equivalence, interp],
   split,
@@ -267,24 +278,24 @@ end
 
 -- Statement lemmas
 
-lemma equiv_stat_refl {AC AR : Type} (I : Interpretation AC AR) (C : Concept AC AR) : interp_stmt I (C ≡ₛ C) :=
+lemma equiv_stat_refl (I : Interpretation VarConcept VarRole) (C : Concept) : interp_stmt I (C ≡ₛ C) :=
 begin
   unfold interp_stmt,
 end
 
-lemma subsum_stat_refl {AC AR : Type} (I : Interpretation AC AR) (C : Concept AC AR) : interp_stmt I (C ⊑ₛ C) :=
+lemma subsum_stat_refl (I : Interpretation VarConcept VarRole) (C : Concept) : interp_stmt I (C ⊑ₛ C) :=
 begin
   unfold interp_stmt,
 end
 
-lemma subsum_stat_trans {AC AR : Type} {I : Interpretation AC AR} {C D E: Concept AC AR} (cd : interp_stmt I (C ⊑ₛ D)) (de : interp_stmt I (D ⊑ₛ E)) : 
+lemma subsum_stat_trans{I : Interpretation VarConcept VarRole} {C D E: Concept} (cd : interp_stmt I (C ⊑ₛ D)) (de : interp_stmt I (D ⊑ₛ E)) : 
    interp_stmt I (C ⊑ₛ E) :=
 begin
   unfold interp_stmt at *,
   exact subset.trans cd de,
 end 
 
-lemma subsum_stat_antisym {AC AR : Type} {I: Interpretation AC AR} {C D: Concept AC AR} (cd : interp_stmt I (C ⊑ₛ D)) (dc : interp_stmt I (D ⊑ₛ C)) :
+lemma subsum_stat_antisym {AC AR : Type} {I: Interpretation VarConcept VarRole} {C D: Concept} (cd : interp_stmt I (C ⊑ₛ D)) (dc : interp_stmt I (D ⊑ₛ C)) :
   interp_stmt I (C ≡ₛ D) :=
 begin
   unfold interp_stmt at *,
@@ -294,4 +305,4 @@ end
 
 
 
-end ALC
+end ALC2

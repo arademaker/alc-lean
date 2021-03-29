@@ -45,7 +45,6 @@ def sigma' : LConcept -> Concept
 
 #eval print $ sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
 
-
 /--
 
 --instance Concept_Intersection_is_commutative {AC AR : Type}:

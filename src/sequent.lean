@@ -30,22 +30,16 @@ mk :: (roles : list Label)
 open LConcept
 open Label
 
-@[reducible]
-def sigma' : LConcept → Concept
-  | { LConcept . roles := [] , concept := c} := c
-  | { LConcept . roles := (Forall r :: ls) , concept := c} := (Every r (sigma' (LConcept.mk ls c)))
-  | { LConcept . roles := (Exists r :: ls) , concept := c} := (Some r (sigma' (LConcept.mk ls c)))
+def sigma_aux : list Label -> Concept -> Concept 
+ | []                 c := c
+ | ((Forall r) :: ls) c := Every r (sigma_aux ls c)
+ | ((Exists r) :: ls) c := Some r (sigma_aux ls c)
 
--- #reduce sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
+def sigma' : LConcept -> Concept
+ | ⟨ roles , concept ⟩ := sigma_aux roles concept
 
-def aux : list Label -> Concept -> Concept 
- | [] c := c
- | ((Forall r) :: ls) c := Every r (aux ls c)
- | ((Exists r) :: ls) c := Some r (aux ls c)
+#reduce sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
 
-def sigma2 (lc : LConcept) : Concept := aux lc.roles lc.concept
-
-#reduce sigma2 (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
 
 /--
 

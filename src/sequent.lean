@@ -36,13 +36,19 @@ def sigma' : LConcept → Concept
   | { LConcept . roles := (Forall r :: ls) , concept := c} := (Every r (sigma' (LConcept.mk ls c)))
   | { LConcept . roles := (Exists r :: ls) , concept := c} := (Some r (sigma' (LConcept.mk ls c)))
 
+-- #reduce sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
 
-#reduce sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
+def aux : list Label -> Concept -> Concept 
+ | [] c := c
+ | ((Forall r) :: ls) c := Every r (aux ls c)
+ | ((Exists r) :: ls) c := Some r (aux ls c)
 
+def sigma2 (lc : LConcept) : Concept := aux lc.roles lc.concept
 
-#check multiset.fold (Concept.Intersection) Concept.Top {Concept.Top}
+#reduce sigma2 (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
 
---#check Concept.rec
+/--
+
 --instance Concept_Intersection_is_commutative {AC AR : Type}:
 --  @is_commutative (Concept AC AR) Concept.Intersection := ⟨λ a b, by⟩
 
@@ -85,8 +91,6 @@ end
 
 
 
-/--
-
 pure logic! Sequent Calculus:
 
 Man |- Person     Person |- Casado
@@ -101,3 +105,4 @@ h2 : Person |- Casado
 cut h1 h2 : Man |- Casado
 
 --/
+

@@ -4,9 +4,10 @@ import data.multiset
 open ALC
 open ALC.Concept
 
-inductive Label (AR : Type) : Type
-  | Forall : (Role AR) → Label
-  | Exists : (Role AR)  → Label
+inductive Label : Type
+  | Forall : Role  → Label
+  | Exists : Role  → Label
+
 
 -- to use with lists, we need an instance for inhabited, that is
 -- to say that we have at leasts one element of the type
@@ -22,28 +23,21 @@ instance LConcept_inhabited {AC AR : Type} :
   inhabited (LConcept AC AR) := inhabited.mk (LConcept.mk [Label.Empty] Concept.Top)
 --/
 
-structure LConcept (AC AR: Type) :=
-mk :: (roles : list (Label AR))
-      (concept : Concept AC AR)
+structure LConcept :=
+mk :: (roles : list Label)
+      (concept : Concept)
 
 open LConcept
 open Label
 
 @[reducible]
-def sigma' {AC AR : Type} : LConcept AC AR → Concept AC AR
+def sigma' : LConcept → Concept
   | { LConcept . roles := [] , concept := c} := c
   | { LConcept . roles := (Forall r :: ls) , concept := c} := (Every r (sigma' (LConcept.mk ls c)))
   | { LConcept . roles := (Exists r :: ls) , concept := c} := (Some r (sigma' (LConcept.mk ls c)))
 
-inductive c : Type
- | man : c
- | woman : c
 
-inductive r : Type
- | hasChild : r
-
--- TODO : o que tá rolando??
-#reduce sigma' (LConcept.mk [@Label.Forall r (Role.Atomic r.hasChild)] (@Concept.Bot c r))
+#reduce sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
 
 
 #check multiset.fold (Concept.Intersection) Concept.Top {Concept.Top}
@@ -55,7 +49,7 @@ inductive r : Type
 --this is the idea for the implementation, we can use folds in multiset, but I still have to prove commutative to
 --use it, but I am having trouble as it is...
 
-def inter_LConcepts {AC AR : Type} (as : list (LConcept AC AR)) :=
+def inter_LConcepts {AC AR : Type} (as : list (qLConcept AC AR)) :=
   list.foldl (Concept.Intersection) (sigma_exhaust (list.head as)) (list.map sigma_exhaust (list.tail as))
 
 def union_LConcepts {AC AR : Type} (as : list (LConcept AC AR)) :=

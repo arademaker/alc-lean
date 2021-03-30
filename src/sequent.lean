@@ -4,34 +4,34 @@ import data.multiset
 open ALC
 open ALC.Concept
 
+-- the labeled concepts 
 
-@[derive has_reflect]
 inductive Label : Type
   | Forall : Role  → Label
   | Exists : Role  → Label
 
-
--- to use with lists, we need an instance for inhabited, that is
--- to say that we have at leasts one element of the type
-
-/--
-instance Label_inhabited {AC AR : Type} : 
-  inhabited (Label AC AR) := inhabited.mk Label.Empty
-
-instance Concept_inhabited {AC AR : Type} :
-  inhabited (Concept AC AR) := inhabited.mk Concept.Top
-
-instance LConcept_inhabited {AC AR : Type} :
-  inhabited (LConcept AC AR) := inhabited.mk (LConcept.mk [Label.Empty] Concept.Top)
---/
-
-@[derive has_reflect]
-structure LConcept :=
+structure LConcept : Type :=
 mk :: (roles : list Label)
       (concept : Concept)
 
 open LConcept
 open Label
+
+def isAx : Label → Prop
+ | (Forall _) := true
+ | (Exists _) := false
+
+def isEx : Label → Prop
+ | (Forall _) := false
+ | (Exists _) := true
+
+def every {a : Type} : (a → Prop) → (list a) → Prop 
+ | f []      := true
+ | f (x::xs) := (f x) ∧ (every f xs) 
+ 
+
+#check (⟨[Forall R#0, Exists R#1], (Concept.Bot)⟩ : LConcept)
+
 
 def sigma_aux : list Label -> Concept -> Concept 
  | []                 c := c
@@ -41,9 +41,50 @@ def sigma_aux : list Label -> Concept -> Concept
 def sigma' : LConcept -> Concept
  | ⟨ roles , concept ⟩ := sigma_aux roles concept
 
-#reduce sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
+#reduce sigma' (⟨[Forall R#0, Exists R#1], (Concept.Bot)⟩)
 
-#eval print $ sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
+
+-- sequent calculus for ALC 
+
+structure Sequent : Type :=
+mk :: (lhs : list LConcept)
+      (rhs : list LConcept)
+
+local infix ` ⇒ `:51 := Sequent.mk -- \=> 
+
+#check [LConcept.mk [Forall R#0] (Concept.Bot)] ⇒ [LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot)]
+
+
+inductive proof : list Sequent → Sequent → Type 
+  infix ` ⊢ ` : 25 := proof
+  | ax : ∀ Ω α,                 Ω ⊢ [α] ⇒ [α] 
+  | ax_falsum : ∀ Ω α,          Ω ⊢  [] ⇒ [α] 
+
+  | weak_l : ∀ Ω Δ Γ δ,         Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ
+  | weak_r : ∀ Ω Δ Γ γ,         Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ Δ ⇒ (γ::Γ)
+
+  | contraction_l : ∀ Ω Δ Γ δ,  Ω ⊢ (δ::δ::Δ) ⇒ Γ → Ω ⊢ (δ::Δ) ⇒ Γ
+  | contraction_r : ∀ Ω Δ Γ γ,  Ω ⊢ Δ ⇒ (γ::γ::Γ) → Ω ⊢ Δ ⇒ (γ::Γ)
+
+  | perm_l : ∀ Ω Δ₁ Δ₂ Γ δ₁ δ₂,  Ω ⊢ Δ₁ ++ (δ₁ :: δ₂ :: Δ₂) ⇒ Γ →  Ω ⊢ Δ₁ ++ (δ₂::δ₁::Δ₂) ⇒ Γ
+  | perm_r : ∀ Ω Δ Γ₁ Γ₂ γ₁ γ₂,  Ω ⊢ Δ ⇒ Γ₁ ++ (γ₁::γ₂::Γ₂) → Ω ⊢ Δ ⇒ Γ₁ ++ (γ₂::γ₁::Γ₂)
+
+  | cut : ∀ Ω Δ₁ Δ₂ Γ₁ Γ₂ α,     Ω ⊢ Δ₁ ⇒ α :: Γ₁ → Ω ⊢ α :: Δ₂ ⇒ Γ₂ → Ω ⊢ Δ₁ ++ Δ₂ ⇒ Γ₁ ++ Γ₂
+
+  | and_l : ∀ Ω Δ Γ α β L, (every isAx L) → 
+            Ω ⊢ (⟨L, α⟩ :: ⟨L,β⟩ :: Δ) ⇒ Γ →  
+            Ω ⊢ (⟨ L, α ⊓ β⟩ :: Δ) ⇒ Γ
+
+  | and_r : ∀ Ω₁ Ω₂ Δ Γ α β L, (every isAx L) → 
+            Ω₁ ⊢ Δ ⇒ (⟨L, α⟩ :: Γ) →  
+            Ω₂ ⊢ Δ ⇒ (⟨L, β⟩ :: Γ) →  
+            Ω₁ ++ Ω₂ ⊢ Δ ⇒ (⟨L, α ⊓ β⟩ :: Γ) 
+
+  | all_r : ∀ Ω Δ Γ L α R,  Ω ⊢ Δ ⇒ ⟨ L ++ [Forall R], α⟩ :: Γ →
+                            Ω ⊢ Δ ⇒ ⟨ L, Ax R : α⟩ :: Γ
+
+infix ` ⊢ ` : 25 := proof -- \vdash
+
 
 /--
 

@@ -30,6 +30,9 @@ structure LConcept :=
 mk :: (roles : list Label)
       (concept : Concept)
 
+#reduce Label.Forall R#1 = Label.Forall R#2
+
+
 open LConcept
 open Label
 
@@ -44,6 +47,25 @@ def sigma' : LConcept -> Concept
 #reduce sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
 
 #eval print $ sigma' (LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot))
+
+reserve infix ` ⊢ `:26
+
+
+inductive Sequent : list LConcept → list LConcept → Type
+infix ⊢ := Sequent
+  | One : ∀ L, L ⊢ L
+  | Neg : ∀ L, [LConcept.mk [] Concept.Bot] ⊢ L
+  | Ins : ∀ L₁ A, A ∈ L₁ → L₁ ⊢ [A]
+  | WeL : ∀ L₁ L₂ A, A ∈ L₁ → L₁ ⊢ L₂ → A::L₁ ⊢ L₂
+  | WeR : ∀ L₁ L₂ B, B ∈ L₂ → L₁ ⊢ L₂ → L₁ ⊢ B::L₂
+  | CoL : ∀ L₁ L₂ A, A::A::L₁ ⊢ L₂ → (A::L₁) ⊢ L₂ 
+  | CoR : ∀ L₁ L₂ B, L₁ ⊢ (B::L₂) → L₁ ⊢ (B::L₂)
+  | PeL : ∀ AL₁ A₁ B₁ BL₁ L₂, AL₁ ++ [A₁,B₁] ++ BL₁ ⊢ L₂ →  AL₁ ++ [B₁,A₁] ++ BL₁ ⊢ L₂
+  | PeR : ∀ AL₂ A₂ B₂ BL₂ L₁, L₁ ⊢ AL₂ ++ [A₂,B₂] ++ BL₂ →  L₁ ⊢ AL₂ ++ [B₂,A₂] ++ BL₂
+  | CuT : ∀ AL₁ BL₁ B AL₂ CL₂, AL₁ ⊢ BL₁ ++ [B] → B::AL₂ ⊢ CL₂ → AL₁ ++ AL₂ ⊢ BL₁ ++ CL₂  
+
+
+#check Sequent
 
 /--
 

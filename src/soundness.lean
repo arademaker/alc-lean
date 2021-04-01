@@ -12,6 +12,7 @@ Similar to soundness.lean, but defines Nc in Type.
 The idea is to be able to prove soundness using recursive equations.
 -/
 
+
 open nat bool list decidable
 
 attribute [reducible]
@@ -24,11 +25,12 @@ inductive PropF
 | Disj : PropF → PropF → PropF
 | Impl : PropF → PropF → PropF
 
+
 namespace PropF
   notation `#`:max P:max := Var P
   local notation A ∨ B   := Disj A B
   local notation A ∧ B   := Conj A B
-  local infixr `⇒`:27    := Impl
+  local infixr ` ⇒ `:27  := Impl
   notation `⊥`           := Bot
 
   def Neg (A)      := A ⇒ ⊥
@@ -77,6 +79,22 @@ namespace PropF
 
   infix ⊢ := Nc
 
+  example (Γ : list PropF) : Γ ⊢ (#1 ∧ #2) → Γ ⊢ #1 := 
+  begin
+   intro h,  
+   apply Nc.AndE₁ _ #1 #2,
+   exact h,         
+  end  
+
+  example : [] ⊢ (#1 ∧ #2 ⇒ #1) := 
+  begin
+   apply Nc.ImpI,
+   have h0 := mem_cons_self (#1 ∧ #2) [],
+   have h1 := Nc.Nax _ (#1 ∧ #2) h0,
+   apply Nc.AndE₁ _ #1 #2,
+   exact h1,         
+  end 
+
   def Provable (A) := [] ⊢ A
 
   def Prop_Soundness := ∀ A, Provable A → Valid A
@@ -104,10 +122,12 @@ namespace PropF
   lemma deduction : ∀ Γ A B, Γ ⊢ A ⇒ B → A::Γ ⊢ B :=
   λ Γ A B H, ImpE _ _ _ (weakening2 H (subset_cons A Γ)) (Nax _ _ (mem_cons_self A Γ))
 
+
   lemma prov_impl : ∀ A B, Provable (A ⇒ B) → ∀ Γ, Γ ⊢ A → Γ ⊢ B :=
   λ A B Hp Γ Ha,
     have wHp : Γ ⊢ (A ⇒ B), from weakening _ _ _ Hp,
     ImpE _ _ _ wHp Ha
+
 
   lemma Satisfies_cons : ∀ {A Γ v}, Satisfies v Γ → is_true (TrueQ v A) → Satisfies v (A::Γ) :=
   λ A Γ v s t B BinAG,
@@ -137,7 +157,7 @@ namespace PropF
     (λ n : TrueQ v A ≠ tt,
       have TrueQ v A    = ff, by {simp at n; simp[*]},
       have TrueQ v (~A) = tt, begin change (bnot (TrueQ v A) || ff = tt), simp[*] end,
-      have Satisfies v ((~A)::Γ), from Satisfies_cons s this,
+      have Satisfies v ((~A):: Γ), from Satisfies_cons s this,
       have TrueQ v ⊥ = tt, from Soundness_general H this,
       absurd this ff_ne_tt)
   | .(A ∧ B) ._ (AndI Γ A B H₁ H₂) s :=

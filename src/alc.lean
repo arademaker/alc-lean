@@ -153,13 +153,16 @@ definition interp_stmt (I : Interpretation) : Statement → Prop
   | (Statement.Equivalence C D) := interp I C = interp I D
 
 
-def sat_concept_tbox (tbox : set Statement) (a : Statement) : Prop :=
-  ∃ I : Interpretation,
-    (∀ c ∈ tbox, (interp_stmt I c)) → (interp_stmt I a)
+def satisfies (I : Interpretation) (tbox : list Statement) : Prop :=
+    (∀ c ∈ tbox, (interp_stmt I c)) 
 
-example (A B C : Concept) : sat_concept_tbox { A ⊑ₛ B , B ⊑ₛ C } (A ⊑ₛ C) := 
+def models (tbox : list Statement) (a : Statement) : Prop :=
+  ∀ I : Interpretation, satisfies I tbox → (interp_stmt I a)
+
+
+example (A B C : Concept) : models [A ⊑ₛ B, B ⊑ₛ C] (A ⊑ₛ C) := 
 begin
- unfold sat_concept_tbox,
+ unfold models,
  let i : Interpretation := { Interpretation . 
     δ := ℕ, 
     nonempty :=  ⟨0⟩, 

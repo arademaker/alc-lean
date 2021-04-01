@@ -37,8 +37,6 @@ def negLabel : list Label → list Label
 
 #check (⟨[Forall R#0, Exists R#1], (Concept.Bot)⟩ : LConcept)
 
-#reduce Label.Forall R#1 = Label.Forall R#2
-
 
 open LConcept
 open Label
@@ -196,18 +194,6 @@ def sequent {AC AR : Type} (as : list (LConcept AC AR)) (bs : list (LConcept AC 
 #reduce list.foldl (λ x y, Concept.Intersection x y) (Concept.Top) [Concept.Bot]
 
 
-#reduce 4 ∈ [1,2,3]
-
-#check 4 ∈ [1,2,3]
-
-lemma l1 : 2 ∈ [1,2,3] :=
-begin
- simp,
-end
-
-#check l1
-
-
 lemma weak_l_srule {AC AR : Type} {as bs : list (LConcept AC AR)} 
   (a : LConcept AC AR) (h1 : list.mem a as) (h : subsequent as bs) : subsequent (a::as) bs :=
 begin
@@ -217,8 +203,6 @@ begin
   have hn : interp I (inter_LConcepts as) ⊆ interp I (union_LConcepts bs), from h I,
   
 end 
-
-
 
 pure logic! Sequent Calculus:
 

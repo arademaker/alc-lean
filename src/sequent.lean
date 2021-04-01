@@ -28,10 +28,20 @@ def isEx : Label → Prop
 def every {a : Type} : (a → Prop) → (list a) → Prop 
  | f []      := true
  | f (x::xs) := (f x) ∧ (every f xs) 
+
+def negLabel : list Label → list Label
+  | [] := []
+  | ((Forall a)::L) := Exists a :: negLabel L
+  | ((Exists a)::L) := Forall a :: negLabel L
  
 
 #check (⟨[Forall R#0, Exists R#1], (Concept.Bot)⟩ : LConcept)
 
+#reduce Label.Forall R#1 = Label.Forall R#2
+
+
+open LConcept
+open Label
 
 def sigma_aux : list Label -> Concept -> Concept 
  | []                 c := c
@@ -54,6 +64,10 @@ local infix ` ⇒ `:51 := Sequent.mk -- \=>
 
 #check [LConcept.mk [Forall R#0] (Concept.Bot)] ⇒ [LConcept.mk [Forall R#0, Exists R#1] (Concept.Bot)]
 
+
+#check list.map (λ x, LConcept.mk (Forall R#1 :: LConcept.roles x) (x.concept)) [LConcept.mk [Forall R#0] (Concept.Bot)]
+
+#check 1 = 1
 
 inductive proof : list Sequent → Sequent → Type 
   infix ` ⊢ ` : 25 := proof
@@ -82,17 +96,61 @@ inductive proof : list Sequent → Sequent → Type
 
   | all_r : ∀ Ω Δ Γ L α R,  Ω ⊢ Δ ⇒ ⟨ L ++ [Forall R], α⟩ :: Γ →
                             Ω ⊢ Δ ⇒ ⟨ L, Ax R : α⟩ :: Γ
+  
+  | all_l : ∀ Ω Δ Γ L α R,  Ω ⊢ ⟨ L ++ [Forall R], α⟩ :: Δ ⇒ Γ →
+                            Ω ⊢ ⟨ L, Ax R : α ⟩ :: Δ ⇒ Γ
+                        
+  | exists_r : ∀ Ω Δ Γ L α R,  Ω ⊢ Δ ⇒ ⟨ L ++ [Exists R], α⟩ :: Γ →
+                               Ω ⊢ Δ ⇒ ⟨ L, Ex R : α⟩ :: Γ
 
-infix ` ⊢ ` : 25 := proof -- \vdash
+  | or_l : ∀ Ω Δ Γ α β L, (every isEx L) → 
+            Ω ⊢ Δ ⇒ (⟨L, α⟩ :: Γ) →  
+            Ω ⊢ Δ ⇒ (⟨L, β⟩ :: Γ) →  
+            Ω ⊢ Δ ⇒ (⟨L, α ⊔ β⟩ :: Γ) 
+
+  | or_r : ∀ Ω Δ Γ α β L, (every isEx L) → 
+            Ω ⊢ Δ ⇒ ⟨L, α⟩ :: ⟨L,β⟩ :: Γ →  
+            Ω ⊢ Δ ⇒ ⟨L, α ⊓ β⟩ :: Γ
+
+  | neg_l : ∀ Ω Δ Γ α L, Ω ⊢ Δ ⇒ ⟨L,α⟩::Γ → 
+              Ω ⊢ ⟨negLabel L, ¬ₐα⟩::Δ ⇒ Γ
+
+  | neg_r : ∀ Ω Δ Γ α L, Ω ⊢ ⟨L,α⟩::Δ ⇒ Γ → 
+              Ω ⊢ Δ ⇒ ⟨negLabel L, ¬ₐα⟩::Γ
+  
+  | prom_ex : ∀ Ω δ Γ R, Ω ⊢ [δ] ⇒ Γ → 
+                Ω ⊢ [⟨ Exists R :: LConcept.roles δ, LConcept.concept δ⟩] ⇒ (list.map (λ x, ⟨ (Exists R) :: LConcept.roles x, LConcept.concept x⟩) Γ)
+
+  | prom_ax : ∀ Ω γ Δ R, Ω ⊢ Δ ⇒ [γ] → 
+                Ω ⊢ (list.map (λ x, ⟨ Forall R :: LConcept.roles x, LConcept.concept x ⟩) Δ) ⇒ [⟨ Forall R :: LConcept.roles γ, LConcept.concept γ⟩]
+infix ` ⊢ ` := proof -- \vdash
 
 
-/--
+/-
+reserve infix ` ⊢ `:26
 
---instance Concept_Intersection_is_commutative {AC AR : Type}:
---  @is_commutative (Concept AC AR) Concept.Intersection := ⟨λ a b, by⟩
 
---this is the idea for the implementation, we can use folds in multiset, but I still have to prove commutative to
---use it, but I am having trouble as it is...
+inductive Sequent : list LConcept → list LConcept → Type
+infix ⊢ := Sequent
+  | One : ∀ L, L ⊢ L
+  | Neg : ∀ L, [LConcept.mk [] Concept.Bot] ⊢ L
+  | Ins : ∀ L₁ A, A ∈ L₁ → L₁ ⊢ [A]
+  | WeL : ∀ L₁ L₂ A, A ∈ L₁ → L₁ ⊢ L₂ → A::L₁ ⊢ L₂
+  | WeR : ∀ L₁ L₂ B, B ∈ L₂ → L₁ ⊢ L₂ → L₁ ⊢ B::L₂
+  | CoL : ∀ L₁ L₂ A, A::A::L₁ ⊢ L₂ → (A::L₁) ⊢ L₂ 
+  | CoR : ∀ L₁ L₂ B, L₁ ⊢ (B::L₂) → L₁ ⊢ (B::L₂)
+  | PeL : ∀ AL₁ A₁ B₁ BL₁ L₂, AL₁ ++ [A₁,B₁] ++ BL₁ ⊢ L₂ →  AL₁ ++ [B₁,A₁] ++ BL₁ ⊢ L₂
+  | PeR : ∀ AL₂ A₂ B₂ BL₂ L₁, L₁ ⊢ AL₂ ++ [A₂,B₂] ++ BL₂ →  L₁ ⊢ AL₂ ++ [B₂,A₂] ++ BL₂
+  | CuT : ∀ AL₁ BL₁ B AL₂ CL₂, AL₁ ⊢ BL₁ ++ [B] → B::AL₂ ⊢ CL₂ → AL₁ ++ AL₂ ⊢ BL₁ ++ CL₂  
+
+
+#check Sequent
+
+instance Concept_Intersection_is_commutative {AC AR : Type}:
+  @is_commutative (Concept AC AR) Concept.Intersection := ⟨λ a b, by⟩
+
+this is the idea for the implementation, we can use folds in multiset, but I still have to prove commutative to
+use it, but I am having trouble as it is...
 
 def inter_LConcepts {AC AR : Type} (as : list (qLConcept AC AR)) :=
   list.foldl (Concept.Intersection) (sigma_exhaust (list.head as)) (list.map sigma_exhaust (list.tail as))
@@ -143,5 +201,4 @@ h1 : Man |- Person
 h2 : Person |- Casado
 cut h1 h2 : Man |- Casado
 
---/
-
+-/

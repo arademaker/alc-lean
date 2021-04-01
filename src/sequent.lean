@@ -125,7 +125,8 @@ inductive proof : list Sequent → Sequent → Type
                 Ω ⊢ (list.map (λ x, ⟨ Forall R :: LConcept.roles x, LConcept.concept x ⟩) Δ) ⇒ [⟨ Forall R :: LConcept.roles γ, LConcept.concept γ⟩]
 infix ` ⊢ ` := proof -- \vdash
 
-/--
+
+/-
 reserve infix ` ⊢ `:26
 
 
@@ -145,13 +146,11 @@ infix ⊢ := Sequent
 
 #check Sequent
 
-/--
+instance Concept_Intersection_is_commutative {AC AR : Type}:
+  @is_commutative (Concept AC AR) Concept.Intersection := ⟨λ a b, by⟩
 
---instance Concept_Intersection_is_commutative {AC AR : Type}:
---  @is_commutative (Concept AC AR) Concept.Intersection := ⟨λ a b, by⟩
-
---this is the idea for the implementation, we can use folds in multiset, but I still have to prove commutative to
---use it, but I am having trouble as it is...
+this is the idea for the implementation, we can use folds in multiset, but I still have to prove commutative to
+use it, but I am having trouble as it is...
 
 def inter_LConcepts {AC AR : Type} (as : list (qLConcept AC AR)) :=
   list.foldl (Concept.Intersection) (sigma_exhaust (list.head as)) (list.map sigma_exhaust (list.tail as))
@@ -202,4 +201,4 @@ h1 : Man |- Person
 h2 : Person |- Casado
 cut h1 h2 : Man |- Casado
 
---/
+-/

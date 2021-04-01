@@ -123,14 +123,9 @@ inductive proof : list Sequent → Sequent → Type
 
   | prom_ax : ∀ Ω γ Δ R, Ω ⊢ Δ ⇒ [γ] → 
                 Ω ⊢ (list.map (λ x, ⟨ Forall R :: LConcept.roles x, LConcept.concept x ⟩) Δ) ⇒ [⟨ Forall R :: LConcept.roles γ, LConcept.concept γ⟩]
-
-#check 1 = 1
+infix ` ⊢ ` := proof -- \vdash
 
 /--
-
-infix ` ⊢ ` : 25 := proof -- \vdash
-
-
 reserve infix ` ⊢ `:26
 
 

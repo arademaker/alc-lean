@@ -11,6 +11,8 @@ This file is based on Floris van Doorn Coq files.
 Similar to soundness.lean, but defines Nc in Type.
 The idea is to be able to prove soundness using recursive equations.
 -/
+
+
 open nat bool list decidable
 
 attribute [reducible]

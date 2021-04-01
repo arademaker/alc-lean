@@ -67,14 +67,13 @@ local infix ` ⇒ `:51 := Sequent.mk -- \=>
 
 #check list.map (λ x, LConcept.mk (Forall R#1 :: LConcept.roles x) (x.concept)) [LConcept.mk [Forall R#0] (Concept.Bot)]
 
-#check 1 = 1
 
 inductive proof : list Sequent → Sequent → Type 
   infix ` ⊢ ` : 25 := proof
   | ax : ∀ Ω α,                 Ω ⊢ [α] ⇒ [α] 
   | ax_falsum : ∀ Ω α,          Ω ⊢  [] ⇒ [α] 
 
-  | weak_l : ∀ Ω Δ Γ δ,         Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ
+  | weak_l : ∀ {Ω Δ Γ} δ,         Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ
   | weak_r : ∀ Ω Δ Γ γ,         Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ Δ ⇒ (γ::Γ)
 
   | contraction_l : ∀ Ω Δ Γ δ,  Ω ⊢ (δ::δ::Δ) ⇒ Γ → Ω ⊢ (δ::Δ) ⇒ Γ
@@ -115,15 +114,48 @@ inductive proof : list Sequent → Sequent → Type
   | neg_l : ∀ Ω Δ Γ α L, Ω ⊢ Δ ⇒ ⟨L,α⟩::Γ → 
               Ω ⊢ ⟨negLabel L, ¬ₐα⟩::Δ ⇒ Γ
 
-  | neg_r : ∀ Ω Δ Γ α L, Ω ⊢ ⟨L,α⟩::Δ ⇒ Γ → 
+  | neg_r : ∀ {Ω Δ Γ α L}, Ω ⊢ (Δ++[⟨L,α⟩]) ⇒ Γ → 
               Ω ⊢ Δ ⇒ ⟨negLabel L, ¬ₐα⟩::Γ
   
-  | prom_ex : ∀ Ω δ Γ R, Ω ⊢ [δ] ⇒ Γ → 
+  | prom_ex : ∀ {Ω δ Γ} R, Ω ⊢ [δ] ⇒ Γ → 
                 Ω ⊢ [⟨ Exists R :: LConcept.roles δ, LConcept.concept δ⟩] ⇒ (list.map (λ x, ⟨ (Exists R) :: LConcept.roles x, LConcept.concept x⟩) Γ)
 
-  | prom_ax : ∀ Ω γ Δ R, Ω ⊢ Δ ⇒ [γ] → 
+  | prom_ax : ∀ {Ω γ Δ} R, Ω ⊢ Δ ⇒ [γ] → 
                 Ω ⊢ (list.map (λ x, ⟨ Forall R :: LConcept.roles x, LConcept.concept x ⟩) Δ) ⇒ [⟨ Forall R :: LConcept.roles γ, LConcept.concept γ⟩]
 infix ` ⊢ ` := proof -- \vdash
+
+example : proof [] ([] ⇒ [LConcept.mk [] C#1]) :=
+begin
+  exact proof.ax_falsum [] (LConcept.mk [] C#1),
+end
+
+example : proof [] ([LConcept.mk [Forall R#1] C#1] ⇒ [LConcept.mk [Forall R#1] C#1]) :=
+begin
+  have S := proof.ax [] ⟨ [] , C#1 ⟩,
+  exact proof.prom_ax R#1 S,
+end
+
+example : proof [] ([⟨[], ⊤⟩, LConcept.mk [Forall R#1] C#1] ⇒ [LConcept.mk [Forall R#1] C#1]) :=
+begin
+  have S := proof.ax [] ⟨ [] , C#1 ⟩,
+  have S₂ := proof.prom_ax R#1 S, simp at S₂,
+  exact proof.weak_l ⟨[],⊤⟩ S₂,
+end
+
+example : proof [] ([⟨[], ⊤⟩, LConcept.mk [Forall R#1] C#1] ⇒ [LConcept.mk [Forall R#1] C#1]) :=
+begin
+  have S := proof.ax [] ⟨ [] , C#1 ⟩,
+  have S₂ := proof.prom_ax R#1 S, simp at S₂,
+  exact proof.weak_l ⟨[],⊤⟩ S₂,
+end
+
+example : proof [] ([⟨[], ⊤⟩] ⇒ [LConcept.mk [Exists R#1] ¬ₐC#1, LConcept.mk [Forall R#1] C#1]) :=
+begin
+  have S₁ := proof.ax [] ⟨ [] , C#1 ⟩,
+  have S₂ := proof.prom_ax R#1 S₁, simp at S₂,
+  have J₁ := proof.weak_l ⟨[],⊤⟩ S₂,
+  have J₂ := proof.neg_r J₁,
+end
 
 
 /-

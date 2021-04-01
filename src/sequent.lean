@@ -97,7 +97,7 @@ inductive proof : list Sequent → Sequent → Type
   | all_l : ∀ Ω Δ Γ L α R,  Ω ⊢ ⟨ L ++ [Forall R], α⟩ :: Δ ⇒ Γ →
                             Ω ⊢ ⟨ L, Ax R : α ⟩ :: Δ ⇒ Γ
                         
-  | exists_r : ∀ Ω Δ Γ L α R,  Ω ⊢ Δ ⇒ ⟨ L ++ [Exists R], α⟩ :: Γ →
+  | exists_r : ∀ {Ω Δ Γ L α R},  Ω ⊢ Δ ⇒ ⟨ L ++ [Exists R], α⟩ :: Γ →
                                Ω ⊢ Δ ⇒ ⟨ L, Ex R : α⟩ :: Γ
 
   | or_l : ∀ Ω Δ Γ α β L, (every isEx L) → 
@@ -112,7 +112,7 @@ inductive proof : list Sequent → Sequent → Type
   | neg_l : ∀ Ω Δ Γ α L, Ω ⊢ Δ ⇒ ⟨L,α⟩::Γ → 
               Ω ⊢ ⟨negLabel L, ¬ₐα⟩::Δ ⇒ Γ
 
-  | neg_r : ∀ {Ω Δ Γ α L}, Ω ⊢ (Δ++[⟨L,α⟩]) ⇒ Γ → 
+  | neg_r : ∀ {Ω} Δ {Γ α L}, Ω ⊢ (Δ++[⟨L,α⟩]) ⇒ Γ → 
               Ω ⊢ Δ ⇒ ⟨negLabel L, ¬ₐα⟩::Γ
   
   | prom_ex : ∀ {Ω δ Γ} R, Ω ⊢ [δ] ⇒ Γ → 
@@ -130,6 +130,7 @@ end
 example : proof [] ([LConcept.mk [Forall R#1] C#1] ⇒ [LConcept.mk [Forall R#1] C#1]) :=
 begin
   have S := proof.ax [] ⟨ [] , C#1 ⟩,
+  have S₁ := proof.weak_l ⟨[],C#1⟩ S,
   exact proof.prom_ax R#1 S,
 end
 
@@ -147,13 +148,28 @@ begin
   exact proof.weak_l ⟨[],⊤⟩ S₂,
 end
 
-example : proof [] ([⟨[], ⊤⟩] ⇒ [LConcept.mk [Exists R#1] ¬ₐC#1, LConcept.mk [Forall R#1] C#1]) :=
+
+example : proof [] ([⟨[], ⊤⟩] ⇒ [LConcept.mk [Exists R#1] (Concept.Negation C#1), LConcept.mk [Forall R#1] C#1]) :=
 begin
   have S₁ := proof.ax [] ⟨ [] , C#1 ⟩,
   have S₂ := proof.prom_ax R#1 S₁, simp at S₂,
   have J₁ := proof.weak_l ⟨[],⊤⟩ S₂,
-  have J₂ := proof.neg_r J₁,
+  exact proof.neg_r [LConcept.mk [] ⊤ ] J₁,
 end
+
+example : proof [] ([⟨[], ⊤⟩] ⇒ 
+  [LConcept.mk [] (Concept.Some R#1 (Concept.Negation C#1)), LConcept.mk [Forall R#1] C#1]) :=
+begin
+  have S₁ := proof.ax [] ⟨ [] , C#1 ⟩,
+  have S₂ := proof.prom_ax R#1 S₁, simp at S₂,
+  have J₁ := proof.weak_l ⟨[],⊤⟩ S₂,
+  have J₂ := proof.neg_r [LConcept.mk [] ⊤ ] J₁,
+  exact proof.exists_r J₂,
+end
+
+example 
+
+
 
 
 /-

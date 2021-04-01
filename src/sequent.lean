@@ -167,6 +167,16 @@ begin
   exact proof.exists_r J₂,
 end
 
+example : proof [] ([⟨[Exists R#1], ⊤⟩] ⇒ 
+  [LConcept.mk [Exists R#1] (Concept.Some R#1 (Concept.Negation C#1)), LConcept.mk [Exists R#1,Forall R#1] C#1]) :=
+begin
+  have S₁ := proof.ax [] ⟨ [] , C#1 ⟩,
+  have S₂ := proof.prom_ax R#1 S₁, simp at S₂,
+  have J₁ := proof.weak_l ⟨[],⊤⟩ S₂,
+  have J₂ := proof.neg_r [LConcept.mk [] ⊤ ] J₁, dsimp [negLabel] at J₂,
+  have K₁ := proof.exists_r J₂,
+end
+
 example 
 
 

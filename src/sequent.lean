@@ -71,7 +71,7 @@ inductive proof : list Sequent → Sequent → Type
   | ax : ∀ Ω α,                 Ω ⊢ [α] ⇒ [α] 
   | ax_falsum : ∀ Ω α,          Ω ⊢  [] ⇒ [α] 
 
-  | weak_l : ∀ {Ω Δ Γ} δ,         Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ
+  | weak_l : ∀ {Ω Δ Γ} δ,       Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ
   | weak_r : ∀ Ω Δ Γ γ,         Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ Δ ⇒ (γ::Γ)
 
   | contraction_l : ∀ Ω Δ Γ δ,  Ω ⊢ (δ::δ::Δ) ⇒ Γ → Ω ⊢ (δ::Δ) ⇒ Γ
@@ -97,7 +97,7 @@ inductive proof : list Sequent → Sequent → Type
   | all_l : ∀ Ω Δ Γ L α R,  Ω ⊢ ⟨ L ++ [Forall R], α⟩ :: Δ ⇒ Γ →
                             Ω ⊢ ⟨ L, Ax R : α ⟩ :: Δ ⇒ Γ
                         
-  | exists_r : ∀ {Ω Δ Γ L α R},  Ω ⊢ Δ ⇒ ⟨ L ++ [Exists R], α⟩ :: Γ →
+  | exists_r : ∀ Ω Δ Γ L α R,  Ω ⊢ Δ ⇒ ⟨ L ++ [Exists R], α⟩ :: Γ →
                                Ω ⊢ Δ ⇒ ⟨ L, Ex R : α⟩ :: Γ
 
   | or_l : ∀ Ω Δ Γ α β L, (every isEx L) → 
@@ -109,45 +109,34 @@ inductive proof : list Sequent → Sequent → Type
             Ω ⊢ Δ ⇒ ⟨L, α⟩ :: ⟨L,β⟩ :: Γ →  
             Ω ⊢ Δ ⇒ ⟨L, α ⊓ β⟩ :: Γ
 
-  | neg_l : ∀ Ω Δ Γ α L, Ω ⊢ Δ ⇒ ⟨L,α⟩::Γ → 
-              Ω ⊢ ⟨negLabel L, ¬ₐα⟩::Δ ⇒ Γ
+  | neg_l : ∀ Ω Δ Γ α L L1, L1 = negLabel L →  Ω ⊢ Δ ⇒ ⟨L,α⟩ :: Γ → Ω ⊢ ⟨L1, ¬ₐα⟩ :: Δ ⇒ Γ
 
-  | neg_r : ∀ {Ω} Δ {Γ α L}, Ω ⊢ (Δ++[⟨L,α⟩]) ⇒ Γ → 
-              Ω ⊢ Δ ⇒ ⟨negLabel L, ¬ₐα⟩::Γ
+  | neg_r : ∀ Ω Δ Γ α L L1, L1 = negLabel L →  Ω ⊢ ⟨L,α⟩ :: Δ ⇒ Γ → Ω ⊢ Δ ⇒ ⟨L1, ¬ₐα⟩ :: Γ
   
-  | prom_ex : ∀ {Ω δ Γ} R, Ω ⊢ [δ] ⇒ Γ → 
-                Ω ⊢ [⟨ Exists R :: LConcept.roles δ, LConcept.concept δ⟩] ⇒ (list.map (λ x, ⟨ (Exists R) :: LConcept.roles x, LConcept.concept x⟩) Γ)
+  | prom_ex : ∀ Ω δ Γ R, Ω ⊢ [δ] ⇒ Γ → 
+                Ω ⊢ [⟨ Exists R :: LConcept.roles δ, LConcept.concept δ⟩] ⇒ 
+                    (list.map (λ x, ⟨ (Exists R) :: LConcept.roles x, LConcept.concept x⟩) Γ)
 
-  | prom_ax : ∀ {Ω γ Δ} R, Ω ⊢ Δ ⇒ [γ] → 
-                Ω ⊢ (list.map (λ x, ⟨ Forall R :: LConcept.roles x, LConcept.concept x ⟩) Δ) ⇒ [⟨ Forall R :: LConcept.roles γ, LConcept.concept γ⟩]
+  | prom_ax : ∀ Ω γ Δ R, Ω ⊢ Δ ⇒ [γ] → 
+                Ω ⊢ (list.map (λ x, ⟨ Forall R :: LConcept.roles x, LConcept.concept x ⟩) Δ) ⇒ 
+                    [⟨ Forall R :: LConcept.roles γ, LConcept.concept γ⟩]
 infix ` ⊢ ` := proof -- \vdash
 
-example : proof [] ([] ⇒ [LConcept.mk [] C#1]) :=
+
+def doctor := C#1
+def child  := R#1
+
+lemma l1 : proof [] ([LConcept.mk [Forall child] doctor] ⇒ [LConcept.mk [Forall child] doctor]) :=
 begin
-  exact proof.ax_falsum [] (LConcept.mk [] C#1),
+  have S := proof.ax [] ⟨[] , doctor⟩,
+  exact proof.prom_ax [] _ _ child S,
 end
 
-example : proof [] ([LConcept.mk [Forall R#1] C#1] ⇒ [LConcept.mk [Forall R#1] C#1]) :=
+lemma l2 : proof [] ([⟨[], ⊤⟩, LConcept.mk [Forall child] doctor] ⇒ [LConcept.mk [Forall child] doctor]) :=
 begin
-  have S := proof.ax [] ⟨ [] , C#1 ⟩,
-  have S₁ := proof.weak_l ⟨[],C#1⟩ S,
-  exact proof.prom_ax R#1 S,
+  apply proof.weak_l,
+  exact l1,  
 end
-
-example : proof [] ([⟨[], ⊤⟩, LConcept.mk [Forall R#1] C#1] ⇒ [LConcept.mk [Forall R#1] C#1]) :=
-begin
-  have S := proof.ax [] ⟨ [] , C#1 ⟩,
-  have S₂ := proof.prom_ax R#1 S, simp at S₂,
-  exact proof.weak_l ⟨[],⊤⟩ S₂,
-end
-
-example : proof [] ([⟨[], ⊤⟩, LConcept.mk [Forall R#1] C#1] ⇒ [LConcept.mk [Forall R#1] C#1]) :=
-begin
-  have S := proof.ax [] ⟨ [] , C#1 ⟩,
-  have S₂ := proof.prom_ax R#1 S, simp at S₂,
-  exact proof.weak_l ⟨[],⊤⟩ S₂,
-end
-
 
 example : proof [] ([⟨[], ⊤⟩] ⇒ [LConcept.mk [Exists R#1] (Concept.Negation C#1), LConcept.mk [Forall R#1] C#1]) :=
 begin
@@ -177,14 +166,22 @@ begin
   have K₁ := proof.exists_r J₂,
 end
 
-example 
+example : proof [] 
+   ([LConcept.mk ([] : list Label) (Ex R#1 : ⊤)] ⇒ 
+   [(LConcept.mk [Exists R#1] ¬ₐ C#1), (LConcept.mk [Exists R#1,Forall R#1] C#1)]) := 
+begin
+ apply proof.neg_r [] 
+  [{roles := ([] : list Label), concept := Ex R#1:⊤}] 
+  [{roles := [Exists R#1, Forall R#1], concept := C#1}] C#1 [Forall R#1] [Exists R#1],
+ rw [negLabel, negLabel],
 
-
+ sorry
+  
+end
 
 
 /-
 reserve infix ` ⊢ `:26
-
 
 inductive Sequent : list LConcept → list LConcept → Type
 infix ⊢ := Sequent

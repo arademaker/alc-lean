@@ -69,6 +69,7 @@ local infix ` ⇒ `:51 := Sequent.mk -- \=>
 inductive proof : list Sequent → Sequent → Type 
   infix ` ⊢ ` : 25 := proof
   | ax : ∀ Ω α,                 Ω ⊢ [α] ⇒ [α] 
+  | ax_theory : ∀ Ω s,  s ∈ Ω → Ω ⊢ s          -- the only real use of Ω
   | ax_falsum : ∀ Ω α,          Ω ⊢  [] ⇒ [α] 
 
   | weak_l : ∀ {Ω Δ Γ} δ,       Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ

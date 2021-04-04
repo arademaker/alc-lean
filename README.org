@@ -29,4 +29,12 @@
 
 - https://leanprover.github.io/theorem_proving_in_lean/
 
+** previous works on modal logics
 
+- https://github.com/paulaneeley/modal
+- https://github.com/bbentzen/mpl
+- https://drops.dagstuhl.de/opus/volltexte/2019/11086/
+- https://lean-forward.github.io/lean-together/2019/slides/hudon.pdf
+
+- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Modal.20logic
+  

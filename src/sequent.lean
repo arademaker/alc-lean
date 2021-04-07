@@ -72,7 +72,7 @@ inductive proof : list Sequent → Sequent → Type
   | ax_theory : ∀ Ω s,  (s ∈ Ω) → Ω ⊢ s          -- the only real use of Ω
   | ax_falsum : ∀ Ω α,          Ω ⊢  [] ⇒ [α] 
 
-  | weak_l : ∀ {Ω Δ Γ} δ,       Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ
+  | weak_l : ∀ Ω Δ Γ δ,       Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ
   | weak_r : ∀ Ω Δ Γ γ,         Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ Δ ⇒ (γ::Γ)
 
   | contraction_l : ∀ Ω Δ Γ δ,  Ω ⊢ (δ::δ::Δ) ⇒ Γ → Ω ⊢ (δ::Δ) ⇒ Γ
@@ -162,7 +162,7 @@ example : proof [] ([⟨[], ⊤⟩] ⇒
 begin
   have S₁ := proof.ax [] ⟨ [] , C#1 ⟩,
   have S₂ := proof.prom_ax _ _ _ R#1 S₁, simp at S₂,
-  have J₁ := proof.weak_l ⟨[],⊤⟩ S₂,
+  have J₁ := proof.weak_l [] [{roles := [Forall R#1], concept := C#1}] [{roles := [Forall R#1], concept := C#1}] ⟨[],⊤⟩ S₂,
   have J₂ := proof.neg_r [] [{roles := ([] : list Label), concept := ⊤}] [{roles := [Forall R#1], concept := C#1}] C#1 [Forall R#1] [Exists R#1] _ J₁,
   clear S₁ S₂ J₁,
   exact proof.exists_r [] [⟨[], ⊤⟩] [{roles := [Forall R#1], concept := C#1}] [] (¬ₐ C#1) R#1 J₂,
@@ -202,6 +202,10 @@ theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) → 
      have h4 := in_map (lhs ⇒ rhs) S seq_to_stmt, 
      exact h2 (seq_to_stmt(lhs ⇒ rhs )) h4, exact (lhs ⇒ rhs),
      }
+  | _ _ (proof.ax_falsum Ω₁ α₁) :=
+    by {unfold models, intros h1 h2, unfold seq_to_stmt at *, simp, unfold interp_stmt, unfold interp, finish,}
+  | _ _ (proof.weak_l Ω₁ Δ Γ δ h) :=
+    by { unfold models, intros h1 h2, unfold satisfies at h2,}
 
 /-
 reserve infix ` ⊢ `:26

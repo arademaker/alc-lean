@@ -182,6 +182,12 @@ begin
   
 end
 
+lemma in_map {α β} {x : α} {A : list α} (x ∈ A) (f : α → β) : (f x) ∈ (list.map f A) :=
+begin
+  finish,
+end
+
+
 def seq_to_stmt : Sequent → Statement
   | ⟨ [] , b::bs ⟩   := Statement.Subsumption ⊥ (list.foldl (⊔) (sigma' b) (list.map (λ x, sigma' x) bs))
   | ⟨ a::as, b::bs ⟩ := 
@@ -191,7 +197,11 @@ theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) → 
   | _ _ (proof.ax Ω₁ α₁) := 
     by {unfold models, intros h1 h2, unfold seq_to_stmt at *, simp, unfold interp_stmt,}
   | _ _ (proof.ax_theory Ω₁ (lhs ⇒ rhs) S) :=
-    by {unfold models, intros h1 h2, unfold satisfies,}
+    by {unfold models, intros h1 h2, unfold satisfies at h2,
+     have h3 := h2 (seq_to_stmt(lhs ⇒ rhs )), 
+     have h4 := in_map (lhs ⇒ rhs) S seq_to_stmt, 
+     exact h2 (seq_to_stmt(lhs ⇒ rhs )) h4, exact (lhs ⇒ rhs),
+     }
 
 /-
 reserve infix ` ⊢ `:26

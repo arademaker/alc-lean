@@ -163,17 +163,11 @@ def models (tbox : list Statement) (a : Statement) : Prop :=
 example (A B C : Concept) : models [A ⊑ₛ B, B ⊑ₛ C] (A ⊑ₛ C) := 
 begin
  unfold models,
- let i : Interpretation := { Interpretation . 
-    δ := ℕ, 
-    nonempty :=  ⟨0⟩, 
-    atom_C := (λ x : VarConcept, ∅), 
-    atom_R := (λ x : VarRole, ∅) },
- existsi i,
  intro h1,
- have ha := h1 (A ⊑ₛ B),simp at ha,
- have hb := h1 (B ⊑ₛ C), simp at hb,
- unfold interp_stmt at *,
- exact (subset.trans ha hb),
+ unfold interp_stmt,
+ unfold satisfies,
+ intro S, simp at S,
+ unfold interp_stmt at S, exact subset.trans S.1 S.2,
 end
 
 -- see https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/non.20empty.20set.20in.20a.20structure

@@ -69,7 +69,7 @@ local infix ` ⇒ `:51 := Sequent.mk -- \=>
 inductive proof : list Sequent → Sequent → Type 
   infix ` ⊢ ` : 25 := proof
   | ax : ∀ Ω α,                 Ω ⊢ [α] ⇒ [α] 
-  | ax_theory : ∀ Ω s,  s ∈ Ω → Ω ⊢ s          -- the only real use of Ω
+  | ax_theory : ∀ Ω s,  (s ∈ Ω) → Ω ⊢ s          -- the only real use of Ω
   | ax_falsum : ∀ Ω α,          Ω ⊢  [] ⇒ [α] 
 
   | weak_l : ∀ {Ω Δ Γ} δ,       Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ
@@ -98,7 +98,7 @@ inductive proof : list Sequent → Sequent → Type
   | all_l : ∀ Ω Δ Γ L α R,  Ω ⊢ ⟨ L ++ [Forall R], α⟩ :: Δ ⇒ Γ →
                             Ω ⊢ ⟨ L, Ax R : α ⟩ :: Δ ⇒ Γ
                         
-  | exists_r : ∀ Ω Δ Γ L α R,  Ω ⊢ Δ ⇒ ⟨ L ++ [Exists R], α⟩ :: Γ →
+  | exists_r : ∀ Ω Δ Γ L α R,  Ω ⊢ Δ ⇒ ⟨ (Exists R) :: L, α⟩ :: Γ →
                                Ω ⊢ Δ ⇒ ⟨ L, Ex R : α⟩ :: Γ
 
   | or_l : ∀ Ω Δ Γ α β L, (every isEx L) → 
@@ -112,7 +112,7 @@ inductive proof : list Sequent → Sequent → Type
 
   | neg_l : ∀ Ω Δ Γ α L L1, L1 = negLabel L →  Ω ⊢ Δ ⇒ ⟨L,α⟩ :: Γ → Ω ⊢ ⟨L1, ¬ₐα⟩ :: Δ ⇒ Γ
 
-  | neg_r : ∀ Ω Δ Γ α L L1, L1 = negLabel L →  Ω ⊢ ⟨L,α⟩ :: Δ ⇒ Γ → Ω ⊢ Δ ⇒ ⟨L1, ¬ₐα⟩ :: Γ
+  | neg_r : ∀ Ω Δ Γ α L L1, L1 = negLabel L →  Ω ⊢ Δ ++ [⟨L,α⟩]  ⇒ Γ → Ω ⊢ Δ ⇒ ⟨L1, ¬ₐα⟩ :: Γ
   
   | prom_ex : ∀ Ω δ Γ R, Ω ⊢ [δ] ⇒ Γ → 
                 Ω ⊢ [⟨ Exists R :: LConcept.roles δ, LConcept.concept δ⟩] ⇒ 
@@ -142,9 +142,9 @@ end
 example : proof [] ([⟨[], ⊤⟩] ⇒ [LConcept.mk [Exists R#1] (Concept.Negation C#1), LConcept.mk [Forall R#1] C#1]) :=
 begin
   have S₁ := proof.ax [] ⟨ [] , C#1 ⟩,
-  have S₂ := proof.prom_ax R#1 S₁, simp at S₂,
+  have S₂ := proof.prom_ax _ _ _ R#1 S₁, simp at S₂,
   have J₁ := proof.weak_l ⟨[],⊤⟩ S₂,
-  exact proof.neg_r [LConcept.mk [] ⊤ ] J₁,
+  exact proof.neg_r [] [LConcept.mk [] ⊤ ] _ J₁,
 end
 
 example : proof [] ([⟨[], ⊤⟩] ⇒ 
@@ -157,14 +157,16 @@ begin
   exact proof.exists_r J₂,
 end
 
-example : proof [] ([⟨[Exists R#1], ⊤⟩] ⇒ 
-  [LConcept.mk [Exists R#1] (Concept.Some R#1 (Concept.Negation C#1)), LConcept.mk [Exists R#1,Forall R#1] C#1]) :=
+example : proof [] ([⟨[], ⊤⟩] ⇒ 
+  [LConcept.mk [] (Concept.Some R#1 (Concept.Negation C#1)), LConcept.mk [Forall R#1] C#1]) :=
 begin
   have S₁ := proof.ax [] ⟨ [] , C#1 ⟩,
-  have S₂ := proof.prom_ax R#1 S₁, simp at S₂,
+  have S₂ := proof.prom_ax _ _ _ R#1 S₁, simp at S₂,
   have J₁ := proof.weak_l ⟨[],⊤⟩ S₂,
-  have J₂ := proof.neg_r [LConcept.mk [] ⊤ ] J₁, dsimp [negLabel] at J₂,
-  have K₁ := proof.exists_r J₂,
+  have J₂ := proof.neg_r [] [{roles := ([] : list Label), concept := ⊤}] [{roles := [Forall R#1], concept := C#1}] C#1 [Forall R#1] [Exists R#1] _ J₁,
+  clear S₁ S₂ J₁,
+  exact proof.exists_r [] [⟨[], ⊤⟩] [{roles := [Forall R#1], concept := C#1}] [] (¬ₐ C#1) R#1 J₂,
+  tauto,
 end
 
 example : proof [] 
@@ -180,6 +182,16 @@ begin
   
 end
 
+def seq_to_stmt : Sequent → Statement
+  | ⟨ [] , b::bs ⟩   := Statement.Subsumption ⊥ (list.foldl (⊔) (sigma' b) (list.map (λ x, sigma' x) bs))
+  | ⟨ a::as, b::bs ⟩ := 
+    Statement.Subsumption (list.foldl (⊓) (sigma' a) (list.map (λ x, sigma' x) as)) (list.foldl (⊔) (sigma' b) (list.map (λ x, sigma' x) bs))
+
+theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) →  models (list.map seq_to_stmt Ω) (seq_to_stmt (Δ ⇒ Γ))
+  | _ _ (proof.ax Ω₁ α₁) := 
+    by {unfold models, intros h1 h2, unfold seq_to_stmt at *, simp, unfold interp_stmt,}
+  | _ _ (proof.ax_theory Ω₁ (lhs ⇒ rhs) S) :=
+    by {unfold models, intros h1 h2, unfold satisfies,}
 
 /-
 reserve infix ` ⊢ `:26

@@ -70,7 +70,7 @@ inductive proof : list Sequent → Sequent → Type
   infix ` ⊢ ` : 25 := proof
   | ax : ∀ Ω α,                 Ω ⊢ [α] ⇒ [α] 
   | ax_theory : ∀ Ω s,  (s ∈ Ω) → Ω ⊢ s          -- the only real use of Ω
-  | ax_falsum : ∀ Ω α,          Ω ⊢  [] ⇒ [α] 
+  | ax_falsum : ∀ Ω α,          Ω ⊢  [⟨ [], ⊥ ⟩] ⇒ [α] 
 
   | weak_l : ∀ Ω Δ Γ δ,       Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ (δ::Δ) ⇒ Γ
   | weak_r : ∀ Ω Δ Γ γ,         Ω ⊢ (Δ ⇒ Γ) → Ω ⊢ Δ ⇒ (γ::Γ)
@@ -189,9 +189,31 @@ end
 
 
 def seq_to_stmt : Sequent → Statement
-  | ⟨ [] , b::bs ⟩   := Statement.Subsumption ⊥ (list.foldl (⊔) (sigma' b) (list.map (λ x, sigma' x) bs))
+  | ⟨ [] , [] ⟩      := Statement.Subsumption ⊤ ⊥
+  | ⟨ a::as, [] ⟩    := Statement.Subsumption (list.foldl (⊓) (sigma' a) (list.map (λ x, sigma' x) as)) ⊥
+  | ⟨ [] , b::bs ⟩   := Statement.Subsumption ⊤ (list.foldl (⊔) (sigma' b) (list.map (λ x, sigma' x) bs))
   | ⟨ a::as, b::bs ⟩ := 
     Statement.Subsumption (list.foldl (⊓) (sigma' a) (list.map (λ x, sigma' x) as)) (list.foldl (⊔) (sigma' b) (list.map (λ x, sigma' x) bs))
+
+
+lemma conclusion_sub {Δ Γ I} ( δ : LConcept) : (interp_stmt I (seq_to_stmt(Δ ⇒ Γ))) →  (interp_stmt I (seq_to_stmt(δ::Δ ⇒ Γ))) :=
+begin
+  intro a,
+  induction Δ with δ₁ Δ₂ Δh, 
+  
+  induction Γ with γ₁ Γ₂ Γh,
+
+  unfold seq_to_stmt at *, simp, unfold interp_stmt at*, unfold interp at *,
+  rw ← set.eq_empty_of_subset_empty a, exact set.subset_univ (interp I (sigma' δ)),
+
+  unfold seq_to_stmt at *, simp at *, unfold interp_stmt at *, unfold interp at *, 
+  rw (set.eq_univ_of_univ_subset a), exact (interp I (sigma' δ)).subset_univ,
+
+  induction Γ with γ₁ Γ₂ Γh,
+
+  unfold seq_to_stmt at *, simp at *, unfold interp_stmt at *, unfold interp at *,
+end
+
 
 theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) →  models (list.map seq_to_stmt Ω) (seq_to_stmt (Δ ⇒ Γ))
   | _ _ (proof.ax Ω₁ α₁) := 
@@ -203,9 +225,12 @@ theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) → 
      exact h2 (seq_to_stmt(lhs ⇒ rhs )) h4, exact (lhs ⇒ rhs),
      }
   | _ _ (proof.ax_falsum Ω₁ α₁) :=
-    by {unfold models, intros h1 h2, unfold seq_to_stmt at *, simp, unfold interp_stmt, unfold interp, finish,}
+    by {unfold models, intros h1 h2, unfold seq_to_stmt at *, simp, unfold interp_stmt,}
   | _ _ (proof.weak_l Ω₁ Δ Γ δ h) :=
-    by { unfold models, intros h1 h2, unfold satisfies at h2,}
+    by { unfold models, intros I h2, unfold satisfies at h2, have hn := soundness h, unfold models at hn,
+      have hn1 := hn I,
+    }
+
 
 /-
 reserve infix ` ⊢ `:26

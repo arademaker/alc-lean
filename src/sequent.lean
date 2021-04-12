@@ -234,6 +234,28 @@ begin
 end
 
 
+lemma conclusion_sub_right {Δ Γ I} ( γ : LConcept) : (interp_stmt I (seq_to_stmt(Δ ⇒ Γ))) →  (interp_stmt I (seq_to_stmt(Δ ⇒ γ::Γ))) :=
+begin
+  intro a,
+  induction Δ with δ₁ Δ₂ Δh, 
+  
+  induction Γ with γ₁ Γ₂ Γh,
+
+  unfold seq_to_stmt interp_stmt foldl_union interp at *,
+  rw set.eq_empty_of_subset_empty a, exact (interp I (foldl_head has_sup.sup (list.map sigma' [γ]))).empty_subset,
+
+  unfold seq_to_stmt interp_stmt interp foldl_union at *, rw head_out_map, unfold1 foldl_head interp, 
+  rw set.eq_univ_of_univ_subset a, finish,
+
+  induction Γ with γ₁ Γ₂ Γh,
+
+  unfold seq_to_stmt interp_stmt interp foldl_union at *, rw set.eq_empty_of_subset_empty a,
+  exact set.empty_subset (interp I (foldl_head has_sup.sup (list.map sigma' [γ]))),
+
+  unfold seq_to_stmt interp_stmt foldl_union foldl_inter at *, rw head_out_map, rw head_out_map,
+end
+
+
 theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) →  models (list.map seq_to_stmt Ω) (seq_to_stmt (Δ ⇒ Γ))
   | _ _ (proof.ax Ω₁ α₁) := 
     by {unfold models, intros h1 h2, unfold seq_to_stmt at *, unfold interp_stmt,}
@@ -251,7 +273,6 @@ theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) → 
       exact conclusion_sub δ h6,
     }
 
-#print instances is_associative
 /-
 reserve infix ` ⊢ `:26
 

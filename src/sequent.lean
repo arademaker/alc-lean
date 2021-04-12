@@ -195,6 +195,11 @@ end
 def foldl_head {α} : (α → α → α) → list α → α
   | f (a::ls) := f a (foldl_head f (ls))
 
+lemma fold_trivial {α} {a : α} {ls : list α} {f : α → α → α}: foldl_head f (a::ls) = f a (foldl_head f ls) :=
+begin
+  refl,
+end
+
 def foldl_inter : list LConcept → Concept
   | [] := ⊤
   | ls := foldl_head (⊓) (list.map sigma' ls)
@@ -206,6 +211,11 @@ def foldl_union : list LConcept → Concept
 def sets_relation {α} {A C : set α} {B : set α} : A ⊆ C → (A ∩ B) ⊆ C :=
 begin
   intro h, have h1 : A ∩ B ⊆ A, exact set.inter_subset_left A B, exact set.subset.trans h1 h,
+end
+
+def sets_relation2 {α} {A C : set α} {B : set α} : A ⊆ C → A ⊆ B ∪ C :=
+begin
+  intro h, have h1 : C ⊆ B ∪ C, exact set.subset_union_right B C, exact set.subset.trans h h1,
 end
 
 def seq_to_stmt : Sequent → Statement
@@ -253,6 +263,7 @@ begin
   exact set.empty_subset (interp I (foldl_head has_sup.sup (list.map sigma' [γ]))),
 
   unfold seq_to_stmt interp_stmt foldl_union foldl_inter at *, rw head_out_map, rw head_out_map,
+  nth_rewrite 1 fold_trivial, unfold interp, exact sets_relation2 a,
 end
 
 
@@ -271,6 +282,11 @@ theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) → 
     by { unfold models, intros I h2, unfold satisfies at h2, have h3 := h2 (seq_to_stmt(Δ ⇒ Γ)),
       have h4 := soundness h, unfold models at h4, have h5 := h4 I, unfold satisfies at h5, have h6 := h5 h2,
       exact conclusion_sub δ h6,
+    }
+  | _ _ (proof.weak_r Ω₁ Δ Γ γ h) :=
+    by { unfold models, intros I h2, unfold satisfies at h2, have h3 := h2 (seq_to_stmt(Δ ⇒ Γ)),
+      have h4 := soundness h, unfold models at h4, have h5 := h4 I, unfold satisfies at h5, have h6 := h5 h2,
+      exact conclusion_sub_right γ h6,
     }
 
 /-

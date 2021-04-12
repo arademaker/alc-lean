@@ -187,13 +187,33 @@ begin
   finish,
 end
 
+lemma head_out_map {α β} {a : α } {A : list α} {f : α → β} : list.map f (a::A) = (f a) :: list.map f A :=
+begin
+  finish,
+end
+
+def foldl_head {α} : (α → α → α) → list α → α
+  | f (a::ls) := f a (foldl_head f (ls))
+
+def foldl_inter : list LConcept → Concept
+  | [] := ⊤
+  | ls := foldl_head (⊓) (list.map sigma' ls)
+
+def foldl_union : list LConcept → Concept
+  | [] := ⊥
+  | ls := foldl_head (Concept.Union) (list.map sigma' ls) 
+
+def sets_relation {α} {A C : set α} {B : set α} : A ⊆ C → (A ∩ B) ⊆ C :=
+begin
+  intro h, have h1 : A ∩ B ⊆ A, exact set.inter_subset_left A B, exact set.subset.trans h1 h,
+end
 
 def seq_to_stmt : Sequent → Statement
   | ⟨ [] , [] ⟩      := Statement.Subsumption ⊤ ⊥
-  | ⟨ a::as, [] ⟩    := Statement.Subsumption (list.foldl (⊓) (sigma' a) (list.map (λ x, sigma' x) as)) ⊥
-  | ⟨ [] , b::bs ⟩   := Statement.Subsumption ⊤ (list.foldl (⊔) (sigma' b) (list.map (λ x, sigma' x) bs))
+  | ⟨ a::as, [] ⟩    := Statement.Subsumption (foldl_inter (a::as)) ⊥
+  | ⟨ [] , b::bs ⟩   := Statement.Subsumption ⊤ (foldl_union (b::bs))
   | ⟨ a::as, b::bs ⟩ := 
-    Statement.Subsumption (list.foldl (⊓) (sigma' a) (list.map (λ x, sigma' x) as)) (list.foldl (⊔) (sigma' b) (list.map (λ x, sigma' x) bs))
+    Statement.Subsumption (foldl_inter (a::as)) (foldl_union (b::bs))
 
 
 lemma conclusion_sub {Δ Γ I} ( δ : LConcept) : (interp_stmt I (seq_to_stmt(Δ ⇒ Γ))) →  (interp_stmt I (seq_to_stmt(δ::Δ ⇒ Γ))) :=
@@ -203,21 +223,25 @@ begin
   
   induction Γ with γ₁ Γ₂ Γh,
 
-  unfold seq_to_stmt at *, simp, unfold interp_stmt at*, unfold interp at *,
-  rw ← set.eq_empty_of_subset_empty a, exact set.subset_univ (interp I (sigma' δ)),
+  unfold seq_to_stmt at *, unfold interp_stmt at *, unfold interp at *,
+  rw ← set.eq_empty_of_subset_empty a, exact set.subset_univ (interp I (foldl_inter [δ])),
 
-  unfold seq_to_stmt at *, simp at *, unfold interp_stmt at *, unfold interp at *, 
-  rw (set.eq_univ_of_univ_subset a), exact (interp I (sigma' δ)).subset_univ,
+  unfold seq_to_stmt at *, unfold interp_stmt at *, unfold interp at *, 
+  rw (set.eq_univ_of_univ_subset a), exact (interp I (foldl_inter [δ])).subset_univ,
 
   induction Γ with γ₁ Γ₂ Γh,
 
-  unfold seq_to_stmt at *, simp at *, unfold interp_stmt at *, unfold interp at *,
+  unfold seq_to_stmt at *, unfold interp_stmt at *, unfold interp at *, unfold foldl_inter at *, rw head_out_map, unfold1 foldl_head,
+  unfold interp, rw set.inter_comm, exact sets_relation a,
+  
+  unfold seq_to_stmt at *, unfold interp_stmt at *, unfold foldl_union at *, unfold foldl_inter at *, rw head_out_map, unfold1 foldl_head,
+  unfold1 interp, rw set.inter_comm, exact sets_relation a,
 end
 
 
 theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) →  models (list.map seq_to_stmt Ω) (seq_to_stmt (Δ ⇒ Γ))
   | _ _ (proof.ax Ω₁ α₁) := 
-    by {unfold models, intros h1 h2, unfold seq_to_stmt at *, simp, unfold interp_stmt,}
+    by {unfold models, intros h1 h2, unfold seq_to_stmt at *, unfold interp_stmt,}
   | _ _ (proof.ax_theory Ω₁ (lhs ⇒ rhs) S) :=
     by {unfold models, intros h1 h2, unfold satisfies at h2,
      have h3 := h2 (seq_to_stmt(lhs ⇒ rhs )), 
@@ -225,13 +249,14 @@ theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) → 
      exact h2 (seq_to_stmt(lhs ⇒ rhs )) h4, exact (lhs ⇒ rhs),
      }
   | _ _ (proof.ax_falsum Ω₁ α₁) :=
-    by {unfold models, intros h1 h2, unfold seq_to_stmt at *, simp, unfold interp_stmt,}
+    by {unfold models, intros h1 h2, unfold seq_to_stmt at *, unfold interp_stmt,}
   | _ _ (proof.weak_l Ω₁ Δ Γ δ h) :=
-    by { unfold models, intros I h2, unfold satisfies at h2, have hn := soundness h, unfold models at hn,
-      have hn1 := hn I,
+    by { unfold models, intros I h2, unfold satisfies at h2, have h3 := h2 (seq_to_stmt(Δ ⇒ Γ)),
+      have h4 := soundness h, unfold models at h4, have h5 := h4 I, unfold satisfies at h5, have h6 := h5 h2,
+      exact conclusion_sub δ h6,
     }
 
-
+#print instances is_associative
 /-
 reserve infix ` ⊢ `:26
 

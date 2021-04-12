@@ -201,7 +201,7 @@ def foldl_inter : list LConcept → Concept
 
 def foldl_union : list LConcept → Concept
   | [] := ⊥
-  | ls := foldl_head (Concept.Union) (list.map sigma' ls) 
+  | ls := foldl_head (⊔) (list.map sigma' ls) 
 
 def sets_relation {α} {A C : set α} {B : set α} : A ⊆ C → (A ∩ B) ⊆ C :=
 begin
@@ -209,12 +209,7 @@ begin
 end
 
 def seq_to_stmt : Sequent → Statement
-  | ⟨ [] , [] ⟩      := Statement.Subsumption ⊤ ⊥
-  | ⟨ a::as, [] ⟩    := Statement.Subsumption (foldl_inter (a::as)) ⊥
-  | ⟨ [] , b::bs ⟩   := Statement.Subsumption ⊤ (foldl_union (b::bs))
-  | ⟨ a::as, b::bs ⟩ := 
-    Statement.Subsumption (foldl_inter (a::as)) (foldl_union (b::bs))
-
+  | (Δ ⇒ Γ) := Statement.Subsumption (foldl_inter Δ) (foldl_union Γ)
 
 lemma conclusion_sub {Δ Γ I} ( δ : LConcept) : (interp_stmt I (seq_to_stmt(Δ ⇒ Γ))) →  (interp_stmt I (seq_to_stmt(δ::Δ ⇒ Γ))) :=
 begin
@@ -223,18 +218,18 @@ begin
   
   induction Γ with γ₁ Γ₂ Γh,
 
-  unfold seq_to_stmt at *, unfold interp_stmt at *, unfold interp at *,
+  unfold seq_to_stmt interp_stmt foldl_union interp at *,
   rw ← set.eq_empty_of_subset_empty a, exact set.subset_univ (interp I (foldl_inter [δ])),
 
-  unfold seq_to_stmt at *, unfold interp_stmt at *, unfold interp at *, 
+  unfold seq_to_stmt interp_stmt interp at *, 
   rw (set.eq_univ_of_univ_subset a), exact (interp I (foldl_inter [δ])).subset_univ,
 
   induction Γ with γ₁ Γ₂ Γh,
 
-  unfold seq_to_stmt at *, unfold interp_stmt at *, unfold interp at *, unfold foldl_inter at *, rw head_out_map, unfold1 foldl_head,
+  unfold seq_to_stmt interp_stmt interp foldl_inter at *, rw head_out_map, unfold1 foldl_head,
   unfold interp, rw set.inter_comm, exact sets_relation a,
   
-  unfold seq_to_stmt at *, unfold interp_stmt at *, unfold foldl_union at *, unfold foldl_inter at *, rw head_out_map, unfold1 foldl_head,
+  unfold seq_to_stmt interp_stmt foldl_union foldl_inter at *, rw head_out_map, unfold1 foldl_head,
   unfold1 interp, rw set.inter_comm, exact sets_relation a,
 end
 

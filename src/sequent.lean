@@ -200,6 +200,16 @@ def foldl_union : list LConcept → Concept
 def seq_to_stmt : Sequent → Statement
   | (Δ ⇒ Γ) := Statement.Subsumption (foldl_inter Δ) (foldl_union Γ)
 
+lemma interp_foldl_inter_append {xs a I}: interp I (foldl_inter (xs ++ [a])) = interp I (foldl_inter (a::xs)) :=
+begin
+  sorry,
+end
+
+lemma interp_foldl_union_reverse {xs I} : interp I (foldl_inter xs) = interp I (foldl_inter (list.reverse xs)) :=
+begin
+  sorry,
+end
+
 lemma interp_stmt_weak_l {Δ Γ I} ( δ : LConcept) : (interp_stmt I (seq_to_stmt(Δ ⇒ Γ))) →  (interp_stmt I (seq_to_stmt(δ::Δ ⇒ Γ))) :=
 begin
   intro a,
@@ -219,6 +229,12 @@ begin
   
   unfold seq_to_stmt interp_stmt foldl_union foldl_inter at *,
   unfold1 interp, rw set.inter_comm, exact subseteq_imp_inter_subseteq a,
+end
+
+lemma gen_interp_stmt_weak_l {Δ₁ Δ₂ Γ I} : (interp_stmt I (seq_to_stmt(Δ₂ ⇒ Γ))) →  (interp_stmt I (seq_to_stmt(Δ₁++Δ₂ ⇒ Γ))) :=
+begin
+  intro h,
+  induction Δ₁ with Δ₁0 Δ₁1 Δ₁h, simp, exact h, exact interp_stmt_weak_l Δ₁0 Δ₁h,
 end
 
 lemma interp_stmt_weak_r {Δ Γ I} ( γ : LConcept) : (interp_stmt I (seq_to_stmt(Δ ⇒ Γ))) →  (interp_stmt I (seq_to_stmt(Δ ⇒ γ::Γ))) :=
@@ -241,6 +257,14 @@ begin
   unfold seq_to_stmt interp_stmt foldl_union foldl_inter at *, unfold interp, exact subseteq_imp_union_subseteq a,
 end
 
+lemma gen_interp_stmt_weak_r {Δ Γ₁ Γ₂ I} : (interp_stmt I (seq_to_stmt(Δ ⇒ Γ₂))) →  (interp_stmt I (seq_to_stmt(Δ ⇒ Γ₁++Γ₂))) :=
+begin
+  intro h,
+  induction Γ₁ with Γ₁0 Γ₁1 Γ₁h, simp, exact h, exact interp_stmt_weak_r Γ₁0 Γ₁h,
+end
+
+#check is_commutative
+
 lemma interp_stmt_contract_l {Δ Γ I} {δ : LConcept} : (interp_stmt I (seq_to_stmt(δ::δ::Δ ⇒ Γ))) →  (interp_stmt I (seq_to_stmt(δ::Δ ⇒ Γ))) :=
 begin
   intro h,
@@ -259,6 +283,24 @@ begin
   
   unfold foldl_union interp_stmt interp at *, rw set.union_self at h, exact h,
   unfold foldl_union interp_stmt interp at *, rw ← set.union_assoc at h , rw set.union_self at h, exact h,
+end
+
+lemma interp_stmt_perm_l {Δ₁ Δ₂ Γ I δ₁ δ₂} : interp_stmt I (seq_to_stmt (Δ₁ ++ δ₁ :: δ₂ :: Δ₂ ⇒ Γ)) → interp_stmt I (seq_to_stmt (Δ₁ ++ δ₂ :: δ₁ :: Δ₂ ⇒ Γ)) :=
+begin
+  intro h,
+  unfold seq_to_stmt at *, 
+  
+  induction Δ₁ with Δ₁0 Δ₁1, 
+  
+  simp at *, unfold foldl_inter interp_stmt interp at *, 
+  
+  induction Δ₂ with Δ₂0 Δ₂1, 
+  
+  unfold foldl_inter at *, rw set.inter_comm at h, exact h,
+  
+  unfold foldl_inter interp at *, rw ← set.inter_assoc at h, nth_rewrite 1 set.inter_comm at h, rw set.inter_assoc at h, exact h,
+
+  sorry
 end
 
 
@@ -296,6 +338,11 @@ theorem soundness {Ω : list Sequent} : ∀ {Δ Γ}, (proof Ω (Δ ⇒ Γ)) → 
     by { unfold models, intros I h1, unfold satisfies at h1,
       have h2 := soundness h, unfold models at h2, have h3 := h2 I, unfold satisfies at h3, have h4:= h3 h1,
       exact interp_stmt_contract_r h4,
+    }
+  | _ _ (proof.perm_l Ω Δ₁ Δ₂ Γ δ₁ δ₂ h) :=
+    by { unfold models, intros I h1, unfold satisfies at h1,
+      have h2 := soundness h, unfold models at h2, have h3 := h2 I, unfold satisfies at h3, have h4:= h3 h1,
+      sorry,
     }
 
 /-

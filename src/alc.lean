@@ -23,11 +23,16 @@ definition VarConcept := nat
 @[reducible]
 definition VarRole := nat
 
+meta def print {α} [has_reflect α] (e : α) : tactic unit :=
+ tactic.pp (reflect e) >>= tactic.trace
+
+@[derive has_reflect]
 inductive Role : Type
   | Atomic  : VarRole → Role
   | Compose : Role → Role → Role
   | Inverse : Role → Role
 
+@[derive has_reflect]
 inductive Concept : Type 
   | Top           : Concept
   | Bot           : Concept
@@ -40,8 +45,6 @@ inductive Concept : Type
 
 notation `R#`:max P:max := Role.Atomic P
 notation `C#`:max P:max := Concept.Atomic P
-
-#check C#1
 
 open Concept Role
 
@@ -69,7 +72,10 @@ notation `Ex` R `:` C := Concept.Some R C  -- (it would be nice to use `∃ R. C
 notation `Ax` R `:` C := Concept.Every R C -- (it would be nice to use `∀ R. C`)
 
 
-structure Interpretation (VarConcept VarRole : Type) := 
+-- I am not sure about this. We are mapping VarConcept to a set. This
+-- is because we don't have a type for atomic roles?
+
+structure Interpretation := 
 mk :: (δ : Type) 
       [nonempty : nonempty δ]
       (atom_C   : VarConcept → set δ)
@@ -79,14 +85,14 @@ variables {AtomicConcept AtomicRole : Type}
 
 
 -- role interpretation
-def r_interp (I : Interpretation VarConcept VarRole) : Role → set (I.δ × I.δ)  
+def r_interp (I : Interpretation) : Role → set (I.δ × I.δ)  
   | (Role.Atomic R)    := I.atom_R R
   | (Role.Inverse R)   := { d | ∀ x: I.δ × I.δ, x ∈ (r_interp R) → d.1 = x.2 ∧ d.2 = x.1 }
   | (Role.Compose R S) := { d | ∀ x y : I.δ × I.δ, x ∈ (r_interp R) ∧ y ∈ (r_interp R) ∧ 
                                   x.2 = y.1 → d.1 =  x.1 ∧ d.2 = y.2 }
 
 -- concept interpretation
-def interp (I : Interpretation VarConcept VarRole) : Concept → set I.δ 
+def interp (I : Interpretation) : Concept → set I.δ 
  | ⊤            := univ
  | ⊥            := ∅ 
  | (Atomic C)   := I.atom_C C
@@ -101,7 +107,7 @@ def interp (I : Interpretation VarConcept VarRole) : Concept → set I.δ
 
 -- more general properties of 'interp' should also be provable:
 
-lemma interp_inter_neg_empty (i : Interpretation VarConcept VarRole) (c : Concept) : 
+lemma interp_inter_neg_empty (i : Interpretation) (c : Concept) : 
  interp i (c ⊓ (¬ₐ c)) = ∅ := 
 begin
   dsimp [interp],
@@ -110,7 +116,7 @@ begin
   --exact set.compl_inter_self (interp i c),
 end
 
-lemma interp_union_neq_univ (a b : Type) (i : Interpretation VarConcept VarRole) (c : Concept) : 
+lemma interp_union_neq_univ (i : Interpretation) (c : Concept) : 
  interp i (c ⊔ (¬ₐ c)) = univ := 
 begin
   dsimp [interp],
@@ -118,10 +124,10 @@ begin
 end
 
 def satisfiable (C : Concept) : Prop :=
-  ∃ I : Interpretation VarConcept VarRole, interp I C ≠ ∅
+  ∃ I : Interpretation, interp I C ≠ ∅
 
 def subsumption (C D: Concept) : Prop :=
-  ∀ I : Interpretation VarConcept VarRole, interp I C ⊆ interp I D
+  ∀ I : Interpretation, interp I C ⊆ interp I D
 
 def equivalence (C D: Concept) : Prop := 
   subsumption C D ∧ subsumption D C
@@ -142,29 +148,26 @@ local infix ` ⊑ₛ ` : 50 := Statement.Subsumption -- \sqsubseteq
 local infix ` ≡ₛ ` : 50 := Statement.Equivalence -- \==
 
 
-definition interp_stmt (I : Interpretation VarConcept VarRole) : Statement → Prop
+definition interp_stmt (I : Interpretation) : Statement → Prop
   | (Statement.Subsumption C D) := interp I C ⊆ interp I D
   | (Statement.Equivalence C D) := interp I C = interp I D
 
 
-def sat_concept_tbox (tbox : set Statement) (a : Statement) : Prop :=
-  ∃ I : Interpretation VarConcept VarRole,
-    (∀ c ∈ tbox, (interp_stmt I c)) → (interp_stmt I a)
+def satisfies (I : Interpretation) (tbox : list Statement) : Prop :=
+    (∀ c ∈ tbox, (interp_stmt I c)) 
 
-example (A B C : Concept) : sat_concept_tbox { A ⊑ₛ B , B ⊑ₛ C } (A ⊑ₛ C) := 
+def models (tbox : list Statement) (a : Statement) : Prop :=
+  ∀ I : Interpretation, satisfies I tbox → (interp_stmt I a)
+
+
+example (A B C : Concept) : models [A ⊑ₛ B, B ⊑ₛ C] (A ⊑ₛ C) := 
 begin
- unfold sat_concept_tbox,
- let i : Interpretation VarConcept VarRole := { Interpretation . 
-    δ := ℕ, 
-    nonempty :=  ⟨0⟩, 
-    atom_C := (λ x : VarConcept, ∅), 
-    atom_R := (λ x : VarRole, ∅) },
- existsi i,
+ unfold models,
  intro h1,
- have ha := h1 (A ⊑ₛ B),simp at ha,
- have hb := h1 (B ⊑ₛ C), simp at hb,
- unfold interp_stmt at *,
- exact (subset.trans ha hb),
+ unfold interp_stmt,
+ unfold satisfies,
+ intro S, simp at S,
+ unfold interp_stmt at S, exact subset.trans S.1 S.2,
 end
 
 -- see https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/non.20empty.20set.20in.20a.20structure
@@ -172,7 +175,7 @@ end
 lemma sat_union_neq (C : Concept) : satisfiable ((¬ₐ C) ⊔ C) :=
 begin
   dsimp [satisfiable, interp],
-  let i : Interpretation VarConcept VarRole := { Interpretation . 
+  let i : Interpretation  := { Interpretation . 
     δ := ℕ, 
     nonempty :=  ⟨0⟩, 
     atom_C := (λ x : VarConcept, ∅), 
@@ -201,7 +204,7 @@ begin
   dsimp [satisfiable,interp],
   -- don't even need to instatiate
   -- goal accomplished with only norm_num
-  let i : Interpretation VarConcept VarRole := { Interpretation . 
+  let i : Interpretation := { Interpretation . 
     δ := ℕ, 
     nonempty :=  ⟨0⟩, 
     atom_C := (λ x : VarConcept, ∅), 
@@ -278,24 +281,26 @@ end
 
 -- Statement lemmas
 
-lemma equiv_stat_refl (I : Interpretation VarConcept VarRole) (C : Concept) : interp_stmt I (C ≡ₛ C) :=
+lemma equiv_stat_refl (I : Interpretation) (C : Concept) : interp_stmt I (C ≡ₛ C) :=
 begin
   unfold interp_stmt,
 end
 
-lemma subsum_stat_refl (I : Interpretation VarConcept VarRole) (C : Concept) : interp_stmt I (C ⊑ₛ C) :=
+lemma subsum_stat_refl (I : Interpretation) (C : Concept) : interp_stmt I (C ⊑ₛ C) :=
 begin
   unfold interp_stmt,
 end
 
-lemma subsum_stat_trans{I : Interpretation VarConcept VarRole} {C D E: Concept} (cd : interp_stmt I (C ⊑ₛ D)) (de : interp_stmt I (D ⊑ₛ E)) : 
+lemma subsum_stat_trans {I : Interpretation} {C D E: Concept} (cd : interp_stmt I (C ⊑ₛ D)) 
+   (de : interp_stmt I (D ⊑ₛ E)) : 
    interp_stmt I (C ⊑ₛ E) :=
 begin
   unfold interp_stmt at *,
   exact subset.trans cd de,
 end 
 
-lemma subsum_stat_antisym {AC AR : Type} {I: Interpretation VarConcept VarRole} {C D: Concept} (cd : interp_stmt I (C ⊑ₛ D)) (dc : interp_stmt I (D ⊑ₛ C)) :
+lemma subsum_stat_antisym {AC AR : Type} {I: Interpretation} {C D: Concept} 
+  (cd : interp_stmt I (C ⊑ₛ D)) (dc : interp_stmt I (D ⊑ₛ C)) :
   interp_stmt I (C ≡ₛ D) :=
 begin
   unfold interp_stmt at *,

@@ -13,8 +13,28 @@
 
 * References
 
+- http://arademaker.github.io/files/thesis.pdf
+
 - https://arxiv.org/pdf/1910.01697.pdf
 - https://github.com/maxd13/logic-soundness
-- http://www.cs.us.es/~mjoseh/alc/ and https://core.ac.uk/download/pdf/158965276.pdf
-- https://github.com/leanprover/lean/blob/72a965986fa5aeae54062e98efb3140b2c4e79fd/tests/lean/run/soundness.lean
 
+- http://www.cs.us.es/~mjoseh/alc/ ,
+  https://link.springer.com/article/10.1007/s10817-013-9291-8 and
+  https://core.ac.uk/download/pdf/158965276.pdf
+
+- https://github.com/leanprover/lean/blob/72a965986fa5aeae54062e98efb3140b2c4e79fd/tests/lean/run/soundness.lean
+  and https://arxiv.org/abs/1503.08744 (soundness.lean)
+
+- constructive DL: http://arademaker.github.io/files/hylo-2010.pdf
+
+- https://leanprover.github.io/theorem_proving_in_lean/
+
+** previous works on modal logics
+
+- https://github.com/paulaneeley/modal
+- https://github.com/bbentzen/mpl
+- https://drops.dagstuhl.de/opus/volltexte/2019/11086/
+- https://lean-forward.github.io/lean-together/2019/slides/hudon.pdf
+
+- https://leanprover.zulipchat.com/#narrow/stream/113489-new-members/topic/Modal.20logic
+  
